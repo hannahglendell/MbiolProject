@@ -1,0 +1,354 @@
+---
+title: "plotting"
+output: html_document
+---
+
+```{r}
+library(here)
+library(ggplot2)
+library(tidyverse)
+library(lme4)
+```
+
+```{r}
+#read in my dataset
+results <- read.csv(here("data", "results.csv"))
+
+#read in the blinded results
+blinded_results <- read.csv(here("data", "results - blinded.csv"))
+
+#join them together by clutch_code
+
+results <- results %>%
+  left_join(blinded_results, by = "clutch_code")
+
+
+```
+
+LARVAL TEMPERATURE AND CLUTCH SIZE
+```{r}
+
+
+
+#convert the larval temperatures to factors
+results$larval_temp <- factor(results$larval_temp,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot")
+                            )
+#assign colours to the temperatures                           
+temp_cols <- c(
+  wild = "#D0CDCE",
+  ambient = "#484A4C",
+  cool    = "#76C0CC",
+  mean    = "#F9CA0F",
+  warm    = "#E87A36",
+  hot     = "#AF0808")
+
+```
+
+
+```{r}
+
+
+
+ggplot(results, aes(x = larval_temp, y = total_eggs, fill = larval_temp)) +
+  geom_jitter(aes(color = larval_temp), width = 0.15, size = 2, alpha = 0.8) +
+  geom_boxplot(alpha = 0.5) +
+  scale_x_discrete(labels = levels(factor(results$larval_temp))) +
+  scale_fill_manual(values = temp_cols) +
+  scale_color_manual(values = temp_cols) + 
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(x = "larval temperature", y = "Clutch size (number of eggs)", title = "")
+
+
+lm3 <- lm(total_eggs ~ pupal_temp + female_mass, data = results)
+
+summary(lm3)
+```
+
+
+
+```{r}
+ggplot(results, aes(x = larval_temp, y = female_mass, fill = larval_temp)) +
+  geom_jitter(aes(color = larval_temp), width = 0.15, size = 2, alpha = 0.8) +
+  geom_boxplot(alpha = 0.5) +
+  scale_x_discrete(labels = levels(factor(results$larval_temp))) +
+  scale_fill_manual(values = temp_cols) +
+  scale_color_manual(values = temp_cols) + 
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(x = "larval temperature", y = "adult mass", title = "")
+```
+
+
+
+
+PUPAL TEMPERATURE AND CLUTCH SIZE
+
+
+```{r}
+#Trim whitespace
+results$pupal_temp <- tolower(trimws(results$pupal_temp))
+
+#convert the PUPAL temperatures to factors
+results$pupal_temp <- factor(results$pupal_temp,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot")
+                            )
+#remove all rows with NA in total_eggs column
+results <- results %>%
+  filter(!is.na(total_eggs))
+
+#assign colours to the temperatures                           
+temp_cols <- c(
+  wild = "#D0CDCE",
+  ambient = "#484A4C",
+  cool    = "#76C0CC",
+  mean    = "#F9CA0F",
+  warm    = "#E87A36",
+  hot     = "#AF0808")
+
+```
+
+```{r}
+
+set.seed(0)
+
+plot_1 <- ggplot(results, aes(x = pupal_temp, y = total_eggs, fill = pupal_temp)) +
+  geom_jitter(aes(color = pupal_temp, shape = larval_temp), width = 0.3, alpha = 1.5, size = 3) +
+  geom_boxplot( alpha = 0.4) +
+  geom_vline(xintercept = 1.5, linetype = "dashed", color = "black") +
+  scale_x_discrete(labels = levels(factor(results$pupal_temp))) +
+  scale_fill_manual(values = temp_cols) +
+  scale_color_manual(values = temp_cols) + 
+  theme_minimal() +
+  theme(legend.position = "right",
+        text = element_text(size = 16),
+  axis.title = element_text(size = 18),
+  axis.text = element_text(size = 16)) +
+  labs(x = "Resource allocation temperature", y = "Clutch size (number of eggs)", title = "") 
+
+plot_1
+
+ggsave("clutch size and pupal temp.png", plot = plot_1, width = 10, height = 6, dpi = 300)
+
+
+```
+```{r}
+plot <- ggplot(results, aes(x = pupal_temp, y = total_eggs, fill = pupal_temp)) +
+  geom_jitter(aes(color = pupal_temp), width = 0.15, alpha = 1.5) +
+  geom_boxplot(alpha = 0.4, outlier.shape = NA) +
+  geom_vline(xintercept = 1.5, linetype = "dashed", color = "black") +
+  scale_x_discrete(labels = levels(factor(results$pupal_temp))) +
+  scale_fill_manual(values = temp_cols) +
+  scale_color_manual(values = temp_cols) + 
+  theme_minimal() +
+  facet_wrap(~ larval_temp, 
+             ncol = 2,
+             labeller = labeller(larval_temp = c(
+      ambient = "Ambient larval temperature",
+      warm    = "Warm larval temperature",
+      hot     = "Hot larval temperature"))) +
+  labs(x = "Pupal temperature", y = "Clutch size (number of eggs)", title = "") +
+  theme(
+      legend.position = "none",
+      text = element_text(size = 16),
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      panel.spacing.y = unit(2, "lines")
+    )
+
+plot
+
+ggsave("clutch size figure.png", width = 10, height = 8, units = "in")
+```
+
+```{r}
+
+write_csv(results, "results so far.csv")
+
+library(lmerTest)
+#modelling clutch size and pupal temperature
+#using a poisson link because it is count data
+
+#lm2.0 <- lm(total_eggs ~ pupal_temp + larval_temp, data = results)
+
+#lm2.1 <- lm(total_eggs ~ pupal_temp + larval_temp + female_mass , data = results)
+
+#summary(lm2.1)
+
+lm3 <- lmer(total_eggs ~ pupal_temp + larval_temp + female_mass + (1|maternal_clutch), data = results)
+
+summary(lm3)
+
+confint(lm3)
+
+anova(lm3)
+
+#exp(fixef(lm3))
+#exp(confint(lm3, parm = names(fixef(lm3))))
+
+
+
+lm4 <- glmer(log(total_eggs) ~ pupal_temp + larval_temp + female_mass + (1|maternal_clutch), family = "poisson", data = results)
+
+summary(lm4)
+
+predict(lm4, type = "response")
+
+predict(lm4, newdata = new_df, type = "response")
+
+```
+```{r}
+females_44 <- filter(results, maternal_clutch == "44")
+
+mean_mass <- mean(females_44$female_mass, na.rm = TRUE)
+mean_mass
+
+new_df <- expand.grid(
+  pupal_temp  = unique(results$pupal_temp),
+  larval_temp = unique(results$larval_temp),
+  female_mass = mean_mass,
+  maternal_clutch = 44   # <-- include random effect level
+)
+new_df
+
+new_df$predicted_eggs <- predict(lm4, newdata = new_df, type = "response")
+
+
+pred_link <- predict(lm4, newdata = new_df, type = "link", se.fit = TRUE)
+
+new_df$fit_link <- pred_link$fit
+new_df$se_link  <- pred_link$se.fit
+
+# 95% CI on link scale
+new_df$lower <- new_df$fit_link - 1.96 * new_df$se_link
+new_df$upper <- new_df$fit_link + 1.96 * new_df$se_link
+
+# back-transform
+new_df$lower <- exp(new_df$lower)
+new_df$upper <- exp(new_df$upper)
+
+
+```
+
+
+
+
+
+
+```{r}
+ggplot(results, aes(x = pupal_temp, y = female_mass, fill = pupal_temp)) +
+  geom_jitter(aes(color = pupal_temp), width = 0.15, size = 2, alpha = 1.5) +
+  geom_boxplot(alpha = 0.4) +
+  scale_x_discrete(labels = levels(factor(results$pupal_temp))) +
+  scale_fill_manual(values = temp_cols) +
+  scale_color_manual(values = temp_cols) + 
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(x = "pupal temperature" , y = "adult mass", title = "")
+```
+
+
+
+
+
+
+LOOKING AT EGG SIZE
+```{r} 
+plot_2 <- ggplot(results, aes(x = pupal_temp, y = egg_mean_round_three
+                    , fill = pupal_temp)) +
+  geom_jitter(aes(color = pupal_temp, shape = larval_temp), width = 0.15, size = 3, alpha = 1.5) +
+  geom_boxplot(alpha = 0.4, outlier.shape = NA) +
+  geom_vline(xintercept = 1.5, linetype = "dashed", color = "black") +
+  scale_x_discrete(labels = levels(factor(results$pupal_temp))) +
+  scale_fill_manual(values = temp_cols) +
+  scale_color_manual(values = temp_cols) + 
+  theme_minimal() +
+  theme(legend.position = "right",
+        text = element_text(size = 16),
+  axis.title = element_text(size = 16),
+  axis.text = element_text(size = 18)) +  
+  labs(x = "Resource allocation temperature", y = expression(Mean~egg~volume~(mm^3)), title = "") 
+ 
+plot_2 
+
+ggsave("egg volume and pupal temp.png", plot = plot_2, width = 10, height = 6, dpi = 300)
+
+
+plot_3 <- ggplot(results, aes(x = pupal_temp, y = mean_area_laura_method
+                    , fill = pupal_temp)) +
+  geom_jitter(aes(color = pupal_temp, shape = larval_temp), width = 0.15, size = 3, alpha = 1.5) +
+  geom_boxplot(alpha = 0.4, outlier.shape = NA) +
+  geom_vline(xintercept = 1.5, linetype = "dashed", color = "black") +
+  scale_x_discrete(labels = levels(factor(results$pupal_temp))) +
+  scale_fill_manual(values = temp_cols) +
+  scale_color_manual(values = temp_cols) + 
+  theme_minimal() +
+  theme(legend.position = "right",
+        text = element_text(size = 16),
+  axis.title = element_text(size = 16),
+  axis.text = element_text(size = 18)) +  
+  labs(x = "Resource allocation temperature", y = expression(Mean~egg~area~(mm^2)), title = "") 
+
+plot_3 
+
+ggsave("egg area and pupal temp.png", plot = plot_3, width = 10, height = 6, dpi = 300)
+
+``` 
+
+```{r}
+#looking at repeatability of mean egg size - not really important anymore because i have done it on the raw results
+ggplot(results, aes(x = egg_mean, y = egg_mean_blinded)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1)
+
+lm4 <- lm(egg_mean_blinded ~ egg_mean, data = results)
+
+summary(lm4)
+
+
+
+
+ggplot(results, aes(x = egg_mean_round_three, y = mean_area_laura_method)) +
+  geom_point()
+
+lm5 <- lm(egg_mean_round_three ~ mean_area_laura_method, data = results)
+
+summary(lm5)
+
+
+```
+
+
+```{r}
+#model egg volume and pupal temperature
+lm1 <- lm(egg_mean_round_three ~ pupal_temp + female_mass, data = results)
+
+summary(lm1) 
+
+confint(lm1)
+
+anova(lm1)
+
+TukeyHSD(aov(lm1))
+```
+
+
+ LOOKING FOR A TRADEOFF
+```{r}
+#looking for a tradeoff
+ggplot(results, aes(x = egg_mean_round_three, y = total_eggs, fill = pupal_temp)) +
+  geom_jitter(aes(color = pupal_temp)) +
+  theme_minimal() +
+  scale_color_manual(values = temp_cols) +
+  labs(
+    x = expression(egg~volume~(mm^3)),
+    y = "Clutch size (number of eggs)",
+    title = ""
+  )
+```
+
+
+
+
+

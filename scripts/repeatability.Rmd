@@ -1,0 +1,63 @@
+---
+title: "repeatability"
+output: html_document
+---
+
+```{r}
+library(here)
+library(tidyverse)
+library(lme4)
+
+```
+
+```{r}
+#read in the mean results, with the clutch codes and the clutch IDs
+results <- read.csv(here("data", "results.csv"))
+
+#read in the raw results from the first set of measures
+first_raw_results <- read.csv(here("data", "raw results - first time.csv"))
+
+#left join the two datasets together
+merged_results <- results %>%
+  left_join(first_raw_results, by = "clutch_ID") %>%
+  mutate(unique_egg_ID = paste0(clutch_code, "_", egg_ID)) %>%
+  rename(egg_mean_first_time = egg_mean,
+         volume_first_time = volume) %>%
+  select(female_ID, clutch_ID, clutch_code, unique_egg_ID, maternal_clutch, larval_temp, pupal_temp, female_mass, total_eggs, volume_first_time )
+  
+
+#now read in the raw results form the second set of measures
+second_raw_results <- read.csv(here("data", "raw results - second time.csv"))
+
+#now clean up this dataset
+second_raw_results <- second_raw_results %>%
+  mutate(unique_egg_ID = paste0(clutch_code, "_", egg_number)) %>%
+  select(clutch_code, unique_egg_ID, volume) %>%
+  rename(volume_second_time = volume)
+  
+
+#now add the second raw results onto the merged dataset
+final_merged <- merged_results %>%
+  left_join(second_raw_results, by = "unique_egg_ID") %>%
+  filter(!clutch_code.x %in% c(2613, 2841, 3906)) #exclude the clutches where i didn't measure the eggs in the same order each time
+
+
+```
+
+
+```{r}
+#now correlate the results from the first time around, and the second time around
+ggplot(final_merged, aes(x = volume_first_time, y = volume_second_time)) +
+  geom_point()+
+  geom_abline(intercept = 0, slope = 1)
+```
+
+
+```{r}
+#now run a model on this to get the R-squared
+lm1 <- lm(volume_second_time ~ volume_first_time, data = final_merged)
+
+summary(lm1)
+```
+
+

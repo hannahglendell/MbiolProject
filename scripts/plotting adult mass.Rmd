@@ -1,0 +1,15 @@
+---
+title: "plotting adult mass"
+output: html_document
+---
+
+```{r}
+library(here)
+library(ggplot2)
+library(tidyverse)
+```
+
+```{r}
+emergence_data <- read.csv(here("adult_emergence_w25_df_automated(Sheet1).csv"))
+```
+

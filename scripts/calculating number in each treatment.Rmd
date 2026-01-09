@@ -1,0 +1,30 @@
+---
+title: "calculating number in each treatment"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(here)
+```
+
+
+```{r}
+pupation_data <- read.csv(here("data","adult_emergence_w25_df_automated(Sheet1).csv"))
+```
+
+```{r}
+#now filter to only include females
+pupation_data_clean <- pupation_data %>%
+  filter(sex == "F") %>% #only looking at females
+  filter(mateID != "") %>% #only looking at females that have mated
+  mutate(treatment_group = sub("\\.[0-9]+$", "", clutchID)) %>% #create new treatment group column
+  filter(stringr::str_count(treatment_group, "\\.") < 2) #remove sienna's females by only keeping rows where there is one "." in the treatment_group
+
+```
+
+```{r}
+treatment_counts <- pupation_data_clean %>%
+  count(treatment_group)
+```
+

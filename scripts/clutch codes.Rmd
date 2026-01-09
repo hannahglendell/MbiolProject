@@ -1,0 +1,19 @@
+---
+title: "clutch codes"
+output: html_document
+---
+
+```{r}
+#generate 1000 random 4-digit numbers, with no repeats
+
+set.seed(123)  # optional, for reproducibility
+numbers <- sample(1000:9999, 1000)
+
+```
+
+```{r}
+#to view it as one column
+df <- data.frame(numbers)
+
+```
+
