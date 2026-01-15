@@ -10,11 +10,19 @@ library(ggplot2)
 library(tidyverse)
 library(lme4)
 ```
-
+working on the raw egg size measurements for each individual egg
 
 ```{r}
 egg_size_raw_results <- read.csv(here("data", "raw results - laura's method.csv"))
 #need to add an individual egg_ID column too, then need to merge both datasets together.
+
+egg_size_raw_results <- egg_size_raw_results %>%
+   mutate(unique_egg_ID = paste0(clutch_code, "_", egg_number)) %>%
+  select(-mean_area)
+
+
+
+
 
 clutch_size_results <- read.csv(here("data", "emergence_egg_counts(Sheet1).csv"))
 
@@ -37,13 +45,27 @@ clutch_size_results <- clutch_size_results %>%
       COOL = "cool",
       WARM = "warm",
       HOT  = "hot"
-    ))
+    )) %>%
+  select(-treatment_combination, -notes, -age, -age_at_photo, -uploaded, -dead)
+
+#make sure clutch_code is a character
+egg_size_raw_results$clutch_code <- as.character(egg_size_raw_results$clutch_code)
 ```
+
+```{r}
+#join the two spreadsheets together
+results <- egg_size_raw_results %>%
+  left_join(clutch_size_results, by = "clutch_code")
+```
+
+
 
 
 ```{r}
 #this is what I am aiming for in the end
 
-lm1 <- lmer(egg_size ~ pupal_temperature + clutch_code, data = )
+lm1 <- lmer(area ~ pupal_treatment + larval_treatment + weight + (1|clutchID), data = results)
+
+summary(lm1)
 ```
 

@@ -256,6 +256,7 @@ ggplot(results, aes(x = pupal_temp, y = female_mass, fill = pupal_temp)) +
 
 LOOKING AT EGG SIZE
 ```{r} 
+#using the egg volume method
 plot_2 <- ggplot(results, aes(x = pupal_temp, y = egg_mean_round_three
                     , fill = pupal_temp)) +
   geom_jitter(aes(color = pupal_temp, shape = larval_temp), width = 0.15, size = 3, alpha = 1.5) +
@@ -276,6 +277,8 @@ plot_2
 ggsave("egg volume and pupal temp.png", plot = plot_2, width = 10, height = 6, dpi = 300)
 
 
+
+#using laura's egg measuring method
 plot_3 <- ggplot(results, aes(x = pupal_temp, y = mean_area_laura_method
                     , fill = pupal_temp)) +
   geom_jitter(aes(color = pupal_temp, shape = larval_temp), width = 0.15, size = 3, alpha = 1.5) +
@@ -289,11 +292,29 @@ plot_3 <- ggplot(results, aes(x = pupal_temp, y = mean_area_laura_method
         text = element_text(size = 16),
   axis.title = element_text(size = 16),
   axis.text = element_text(size = 18)) +  
-  labs(x = "Resource allocation temperature", y = expression(Mean~egg~area~(mm^2)), title = "") 
+  labs(x = "pupal temperature", y = expression(Mean~egg~area~(mm^2)), title = "") 
 
 plot_3 
 
 ggsave("egg area and pupal temp.png", plot = plot_3, width = 10, height = 6, dpi = 300)
+
+
+plot_4 <- ggplot(results, aes(x = larval_temp, y = mean_area_laura_method
+                    , fill = larval_temp)) +
+  geom_jitter(aes(color = larval_temp, shape = pupal_temp), width = 0.15, size = 3, alpha = 1.5) +
+  geom_boxplot(alpha = 0.4, outlier.shape = NA) +
+  geom_vline(xintercept = 1.5, linetype = "dashed", color = "black") +
+  scale_x_discrete(labels = levels(factor(results$larval_temp))) +
+  scale_fill_manual(values = temp_cols) +
+  scale_color_manual(values = temp_cols) + 
+  theme_minimal() +
+  theme(legend.position = "right",
+        text = element_text(size = 16),
+  axis.title = element_text(size = 16),
+  axis.text = element_text(size = 18)) +  
+  labs(x = "larval temperature", y = expression(Mean~egg~area~(mm^2)), title = "") 
+
+plot_4 
 
 ``` 
 

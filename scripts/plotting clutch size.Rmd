@@ -1,0 +1,174 @@
+---
+title: "plotting 2.0"
+output: html_document
+---
+
+```{r}
+library(here)
+library(ggplot2)
+library(tidyverse)
+library(lme4)
+```
+
+```{r}
+#working with the egg counts of the five treatment groups
+#read in the dataset
+egg_counts <- read.csv(here("data", "emergence_egg_counts(Sheet1).csv"))
+
+
+#make sure egg counts are stored as numbers
+egg_counts$green_eggs  <- as.numeric(egg_counts$green_eggs)
+egg_counts$orange_eggs <- as.numeric(egg_counts$orange_eggs)
+
+#clean up the dataset so it only has the females I am interested in
+egg_counts_clean <- egg_counts %>%
+  filter(sex == "F") %>% #only looking at females
+  filter(!startsWith(adultID, "F")) %>% #remove sienna's females
+  mutate(clutch_size = green_eggs + orange_eggs) %>%
+  filter(!is.na(clutch_size)) %>% #remove those with NA clutch size
+  mutate(larval_treatment = str_extract(adultID, "^[^.]+")) %>% #make larval treatment column
+  mutate(
+    pupal_treatment = case_when(
+      adultID == "CTRL.WTH.152_P6_H" ~ "hot",
+      adultID == "HOT.WTH.47_P2_A"   ~ "ambient",
+      TRUE                          ~ pupal_treatment
+    )
+  ) %>%
+  mutate(
+    larval_treatment = recode(
+      larval_treatment,
+      CTRL = "ambient",
+      MEAN = "mean",
+      COOL = "cool",
+      WARM = "warm",
+      HOT  = "hot"
+    ))
+
+#working with the clutch sizes of the wild moths
+wild_egg_counts <- read.csv(here("data","wild moths spreadsheet.csv"))
+
+#male sure the egg counts are stored as numbers
+wild_egg_counts$green_eggs <- as.numeric(wild_egg_counts$green_eggs)
+wild_egg_counts$green_eggs <- as.numeric(wild_egg_counts$green_eggs)
+
+#clean up wild egg counts dataset
+wild_egg_counts_clean <- wild_egg_counts %>%
+  select(female_ID, green_eggs, orange_eggs) %>%
+  mutate(clutch_size = green_eggs + orange_eggs) %>%
+  filter(!is.na(clutch_size)) %>%
+  mutate(pupal_treatment = "wild", larval_treatment = "wild", sex = "F") %>%
+  rename(adultID = female_ID)
+
+#join the wild egg counts to the other treatment groups
+combined_egg_counts <- bind_rows(egg_counts_clean, wild_egg_counts_clean)
+
+
+
+```
+
+
+
+```{r}
+#convert the pupal temperatures to factors
+combined_egg_counts$pupal_treatment <- factor(combined_egg_counts$pupal_treatment,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
+
+#convert the larval  temperatures to factors
+combined_egg_counts$larval_treatment <- factor(combined_egg_counts$larval_treatment,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
+
+#assign colours to the temperatures                           
+temp_cols <- c(
+  ambient = "#484A4C",
+  cool    = "#76C0CC",
+  mean    = "#F9CA0F",
+  warm    = "#E87A36",
+  hot     = "#AF0808")
+
+```
+
+
+
+```{r}
+larval_temp_ambient <- ggplot(
+  combined_egg_counts %>% filter(larval_treatment == "ambient"),
+  aes(x = pupal_treatment, y = clutch_size, fill = pupal_treatment)
+) +
+  geom_jitter(aes(color = pupal_treatment),
+              width = 0.15, size = 2, alpha = 0.8) +
+  geom_boxplot(alpha = 0.5) +
+  scale_y_continuous(limits = c(0, 400)) +
+  scale_x_discrete(
+    limits = levels(combined_egg_counts$pupal_treatment),
+    drop = FALSE
+  ) +
+  scale_fill_manual(values = temp_cols) +
+  scale_color_manual(values = temp_cols) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(
+    x = "Pupal temperature",
+    y = "Clutch size (number of eggs)",
+    title = "Larval temperature: ambient OR wild") +
+  #overlay wild data
+  geom_jitter(
+    data = combined_egg_counts %>% 
+      filter(larval_treatment == "wild"),
+    aes(x = pupal_treatment, y = clutch_size),
+    inherit.aes = FALSE,
+    color = "#D0CDCE",
+    width = 0.15,
+    size = 2,
+    alpha = 0.8) +
+  geom_boxplot(
+    data = combined_egg_counts %>% filter(larval_treatment == "wild"),
+    aes(x = pupal_treatment, y = clutch_size),
+    inherit.aes = FALSE,
+    fill = "#D0CDCE",
+    alpha = 0.3,
+    width = 0.6
+  )
+
+larval_temp_ambient
+```
+
+```{r}
+
+larval_levels <- c("cool", "mean", "warm", "hot")
+
+plots <- lapply(larval_levels, function(lt) {
+
+  ggplot(
+    combined_egg_counts %>% 
+    filter(larval_treatment == lt),
+    aes(x = pupal_treatment, y = clutch_size, fill = pupal_treatment)
+  ) +
+    geom_jitter(aes(color = pupal_treatment),
+                width = 0.15, size = 2, alpha = 0.8) +
+    geom_boxplot(alpha = 0.5) +
+    scale_x_discrete(
+        limits = levels(combined_egg_counts$pupal_treatment),
+        drop = FALSE) +
+    scale_y_continuous(limits = c(0, 400)) +
+    scale_fill_manual(values = temp_cols) +
+    scale_color_manual(values = temp_cols) +
+    theme_minimal() +
+    theme(legend.position = "none") +
+    labs(
+      x = "Pupal temperature",
+      y = "Clutch size (number of eggs)",
+      title = paste("Larval temperature:", lt)
+    )
+})
+
+# View first plot
+plots[[1]]
+plots[[2]]
+plots[[3]]
+plots[[4]]
+
+```
+
+
+```
+
