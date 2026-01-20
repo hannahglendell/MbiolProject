@@ -96,7 +96,7 @@ larval_temp_ambient <- ggplot(
 ) +
   geom_jitter(aes(color = pupal_treatment),
               width = 0.15, size = 2, alpha = 0.8) +
-  geom_boxplot(alpha = 0.5) +
+  geom_boxplot(alpha = 0.5, width = 0.7) +
   scale_y_continuous(limits = c(0, 400)) +
   scale_x_discrete(
     limits = levels(combined_egg_counts$pupal_treatment),
@@ -126,7 +126,7 @@ larval_temp_ambient <- ggplot(
     inherit.aes = FALSE,
     fill = "#D0CDCE",
     alpha = 0.3,
-    width = 0.6
+    width = 0.7
   )
 
 larval_temp_ambient

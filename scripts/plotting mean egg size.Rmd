@@ -1,0 +1,95 @@
+---
+title: "plotting mean egg size"
+output: html_document
+---
+
+```{r}
+library(here)
+library(ggplot2)
+library(tidyverse)
+library(lme4)
+```
+
+```{r}
+#working with the egg counts of the five treatment groups
+#read in the dataset
+egg_counts <- read.csv(here("data", "emergence_egg_counts(Sheet1).csv"))
+
+
+#make sure egg counts are stored as numbers
+egg_counts$green_eggs  <- as.numeric(egg_counts$green_eggs)
+egg_counts$orange_eggs <- as.numeric(egg_counts$orange_eggs)
+
+#clean up the dataset so it only has the females I am interested in
+egg_counts_clean <- egg_counts %>%
+  filter(sex == "F") %>% #only looking at females
+  filter(!startsWith(adultID, "F")) %>% #remove sienna's females
+  mutate(clutch_size = green_eggs + orange_eggs) %>%
+  filter(!is.na(clutch_size)) %>% #remove those with NA clutch size
+  mutate(larval_treatment = str_extract(adultID, "^[^.]+")) %>% #make larval treatment column
+  mutate(
+    pupal_treatment = case_when(
+      adultID == "CTRL.WTH.152_P6_H" ~ "hot",
+      adultID == "HOT.WTH.47_P2_A"   ~ "ambient",
+      TRUE                          ~ pupal_treatment
+    )
+  ) %>%
+  mutate(
+    larval_treatment = recode(
+      larval_treatment,
+      CTRL = "ambient",
+      MEAN = "mean",
+      COOL = "cool",
+      WARM = "warm",
+      HOT  = "hot"
+    ))
+```
+
+```{r}
+
+egg_size_results <- read.csv(here("data", "results - blinded.csv"))
+
+egg_size_results$clutch_code <- as.character(egg_size_results$clutch_code)
+
+results <- egg_counts_clean %>%
+  left_join(egg_size_results, by = "clutch_code")
+
+```
+
+```{r}
+#convert the pupal temperatures to factors
+results$pupal_treatment <- factor(results$pupal_treatment,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
+
+#convert the larval  temperatures to factors
+results$larval_treatment <- factor(results$larval_treatment,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
+
+#assign colours to the temperatures                           
+temp_cols <- c(
+  ambient = "#484A4C",
+  cool    = "#76C0CC",
+  mean    = "#F9CA0F",
+  warm    = "#E87A36",
+  hot     = "#AF0808")
+
+```
+
+```{r}
+ggplot(results, aes(x = pupal_treatment, y = mean_area_laura_method
+                    , fill = pupal_treatment)) +
+  geom_jitter(aes(color = pupal_treatment), width = 0.15, size = 2, alpha = 1.5) +
+  geom_boxplot(alpha = 0.4, outlier.shape = NA) +
+  geom_vline(xintercept = 1.5, linetype = "dashed", color = "black") +
+  scale_x_discrete(labels = levels(factor(results$pupal_treatment))) +
+  scale_fill_manual(values = temp_cols) +
+  scale_color_manual(values = temp_cols) + 
+  theme_minimal() +
+  theme(legend.position = "right",
+        text = element_text(size = 16),
+  axis.title = element_text(size = 16),
+  axis.text = element_text(size = 18)) +  
+  labs(x = "pupal temperature", y = expression(Mean~egg~area~(mm^2)), title = "") 
+
+```
+
