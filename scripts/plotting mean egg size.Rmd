@@ -47,12 +47,22 @@ egg_counts_clean <- egg_counts %>%
 
 ```{r}
 
-egg_size_results <- read.csv(here("data", "results - blinded.csv"))
+egg_size_results <- read.csv(here("data", "egg size results - blinded.csv"))
 
 egg_size_results$clutch_code <- as.character(egg_size_results$clutch_code)
 
 results <- egg_counts_clean %>%
-  left_join(egg_size_results, by = "clutch_code")
+  left_join(egg_size_results, by = "clutch_code") %>%
+  filter(!is.na(mean_area_laura_method))
+
+results$mean_area_laura_method <- as.numeric(results$mean_area_laura_method)
+
+results <- results %>%
+  filter(!is.na(mean_area_laura_method))
+
+results <- results %>%
+  filter(clutch_code != 3377)
+  
 
 ```
 
@@ -76,8 +86,7 @@ temp_cols <- c(
 ```
 
 ```{r}
-ggplot(results, aes(x = pupal_treatment, y = mean_area_laura_method
-                    , fill = pupal_treatment)) +
+ggplot(results, aes(x = pupal_treatment, y = mean_area_laura_method, fill = pupal_treatment)) +
   geom_jitter(aes(color = pupal_treatment), width = 0.15, size = 2, alpha = 1.5) +
   geom_boxplot(alpha = 0.4, outlier.shape = NA) +
   geom_vline(xintercept = 1.5, linetype = "dashed", color = "black") +
