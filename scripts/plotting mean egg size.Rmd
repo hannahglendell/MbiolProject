@@ -60,8 +60,6 @@ results$mean_area_laura_method <- as.numeric(results$mean_area_laura_method)
 results <- results %>%
   filter(!is.na(mean_area_laura_method))
 
-results <- results %>%
-  filter(clutch_code != 3377)
   
 
 ```
@@ -87,7 +85,7 @@ temp_cols <- c(
 
 ```{r}
 ggplot(results, aes(x = pupal_treatment, y = mean_area_laura_method, fill = pupal_treatment)) +
-  geom_jitter(aes(color = pupal_treatment), width = 0.15, size = 2, alpha = 1.5) +
+  geom_jitter(aes(color = pupal_treatment),  width = 0.15, size = 2, alpha = 1.5) +
   geom_boxplot(alpha = 0.4, outlier.shape = NA) +
   geom_vline(xintercept = 1.5, linetype = "dashed", color = "black") +
   scale_x_discrete(labels = levels(factor(results$pupal_treatment))) +
@@ -100,5 +98,66 @@ ggplot(results, aes(x = pupal_treatment, y = mean_area_laura_method, fill = pupa
   axis.text = element_text(size = 18)) +  
   labs(x = "pupal temperature", y = expression(Mean~egg~area~(mm^2)), title = "") 
 
+
+
+
+
+larval_levels <- c("ambient", "cool", "mean", "warm", "hot")
+
+plots <- lapply(larval_levels, function(lt) {
+
+  ggplot(
+    results %>% 
+    filter(larval_treatment == lt),
+    aes(x = pupal_treatment, y = mean_area_laura_method, fill = pupal_treatment)
+  ) +
+    geom_jitter(aes(color = pupal_treatment),
+                width = 0.15, size = 2, alpha = 0.8) +
+    geom_boxplot(alpha = 0.5) +
+    scale_x_discrete(
+        limits = levels(results$pupal_treatment),
+        drop = FALSE) +
+    scale_y_continuous(limits = c(0.15, 0.25)) +
+    scale_fill_manual(values = temp_cols) +
+    scale_color_manual(values = temp_cols) +
+    theme_minimal() +
+    theme(legend.position = "none") +
+    labs(
+      x = "Pupal temperature",
+      y = "egg size",
+      title = paste("Larval temperature:", lt)
+    )
+})
+
+# View first plot
+plots[[1]]
+plots[[2]]
+plots[[3]]
+plots[[4]]
+plots[[5]]
+
+```
+```{r}
+ggplot(results, aes(x = larval_treatment, y = mean_area_laura_method, fill = larval_treatment)) +
+  geom_jitter(aes(color = larval_treatment),  width = 0.15, size = 2, alpha = 1.5) +
+  geom_boxplot(alpha = 0.4, outlier.shape = NA) +
+  geom_vline(xintercept = 1.5, linetype = "dashed", color = "black") +
+  scale_x_discrete(labels = levels(factor(results$larval_treatment))) +
+  scale_fill_manual(values = temp_cols) +
+  scale_color_manual(values = temp_cols) + 
+  theme_minimal() +
+  theme(legend.position = "right",
+        text = element_text(size = 16),
+  axis.title = element_text(size = 16),
+  axis.text = element_text(size = 18)) +  
+  labs(x = "larval temperature", y = expression(Mean~egg~area~(mm^2)), title = "") 
+
+```
+```{r}
+ggplot(results, aes(x = clutch_size, y = mean_area_laura_method, fill = pupal_treatment)) +
+  geom_jitter(aes(color = pupal_treatment),  width = 0.15, size = 2, alpha = 1.5) +
+  scale_color_manual(values = temp_cols) +
+  #facet_wrap(~ larval_treatment) +
+  scale_y_continuous(limits = c(0.15, 0.25))
 ```
 
