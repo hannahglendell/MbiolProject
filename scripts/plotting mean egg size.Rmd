@@ -53,12 +53,12 @@ egg_size_results$clutch_code <- as.character(egg_size_results$clutch_code)
 
 results <- egg_counts_clean %>%
   left_join(egg_size_results, by = "clutch_code") %>%
-  filter(!is.na(mean_area_laura_method))
+  filter(!is.na(egg_mean_1A))
 
-results$mean_area_laura_method <- as.numeric(results$mean_area_laura_method)
+results$egg_mean_1A <- as.numeric(results$egg_mean_1A)
 
 results <- results %>%
-  filter(!is.na(mean_area_laura_method))
+  filter(!is.na(egg_mean_1A))
 
   
 
@@ -84,7 +84,7 @@ temp_cols <- c(
 ```
 
 ```{r}
-ggplot(results, aes(x = pupal_treatment, y = mean_area_laura_method, fill = pupal_treatment)) +
+ggplot(results, aes(x = pupal_treatment, y = egg_mean_1A, fill = pupal_treatment)) +
   geom_jitter(aes(color = pupal_treatment),  width = 0.15, size = 2, alpha = 1.5) +
   geom_boxplot(alpha = 0.4, outlier.shape = NA) +
   geom_vline(xintercept = 1.5, linetype = "dashed", color = "black") +
@@ -109,7 +109,7 @@ plots <- lapply(larval_levels, function(lt) {
   ggplot(
     results %>% 
     filter(larval_treatment == lt),
-    aes(x = pupal_treatment, y = mean_area_laura_method, fill = pupal_treatment)
+    aes(x = pupal_treatment, y = egg_mean_1A, fill = pupal_treatment)
   ) +
     geom_jitter(aes(color = pupal_treatment),
                 width = 0.15, size = 2, alpha = 0.8) +
@@ -136,9 +136,10 @@ plots[[3]]
 plots[[4]]
 plots[[5]]
 
+
 ```
 ```{r}
-ggplot(results, aes(x = larval_treatment, y = mean_area_laura_method, fill = larval_treatment)) +
+ggplot(results, aes(x = larval_treatment, y = egg_mean_1A, fill = larval_treatment)) +
   geom_jitter(aes(color = larval_treatment),  width = 0.15, size = 2, alpha = 1.5) +
   geom_boxplot(alpha = 0.4, outlier.shape = NA) +
   geom_vline(xintercept = 1.5, linetype = "dashed", color = "black") +
@@ -154,7 +155,7 @@ ggplot(results, aes(x = larval_treatment, y = mean_area_laura_method, fill = lar
 
 ```
 ```{r}
-ggplot(results, aes(x = clutch_size, y = mean_area_laura_method, fill = pupal_treatment)) +
+ggplot(results, aes(x = clutch_size, y = egg_mean_1A, fill = pupal_treatment)) +
   geom_jitter(aes(color = pupal_treatment),  width = 0.15, size = 2, alpha = 1.5) +
   scale_color_manual(values = temp_cols) +
   #facet_wrap(~ larval_treatment) +

@@ -67,5 +67,9 @@ results <- egg_size_raw_results %>%
 lm1 <- lmer(area ~ pupal_treatment + larval_treatment + weight + (1|clutchID), data = results)
 
 summary(lm1)
+
+anova(lm1)
+
+confint(lm1)
 ```
 
