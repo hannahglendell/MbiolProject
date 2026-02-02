@@ -20,14 +20,15 @@ egg_counts <- read.csv(here("data", "emergence_egg_counts(Sheet1).csv"))
 egg_counts$green_eggs  <- as.numeric(egg_counts$green_eggs)
 egg_counts$orange_eggs <- as.numeric(egg_counts$orange_eggs)
 
+
 #clean up the dataset so it only has the females I am interested in
 egg_counts_clean <- egg_counts %>%
   filter(sex == "F") %>% #only looking at females
   filter(!startsWith(adultID, "F")) %>% #remove sienna's females
-  mutate(clutch_size = green_eggs + orange_eggs) %>%
+  mutate(clutch_size = green_eggs + orange_eggs) %>% #clean up clutch size column
   filter(!is.na(clutch_size)) %>% #remove those with NA clutch size
   mutate(larval_treatment = str_extract(adultID, "^[^.]+")) %>% #make larval treatment column
-  mutate(
+  mutate( #fix these two rows because they were not assigned pupal treatment correctly
     pupal_treatment = case_when(
       adultID == "CTRL.WTH.152_P6_H" ~ "hot",
       adultID == "HOT.WTH.47_P2_A"   ~ "ambient",
@@ -43,6 +44,10 @@ egg_counts_clean <- egg_counts %>%
       WARM = "warm",
       HOT  = "hot"
     ))
+
+#how many clutches I have photos of
+photographed_clutches <- egg_counts_clean %>%
+  filter(eggs_photographed == "DONE")
 ```
 
 ```{r}
@@ -84,6 +89,7 @@ temp_cols <- c(
 ```
 
 ```{r}
+#Plot all the results together
 ggplot(results, aes(x = pupal_treatment, y = egg_mean_1A, fill = pupal_treatment)) +
   geom_jitter(aes(color = pupal_treatment),  width = 0.15, size = 2, alpha = 1.5) +
   geom_boxplot(alpha = 0.4, outlier.shape = NA) +
@@ -101,7 +107,7 @@ ggplot(results, aes(x = pupal_treatment, y = egg_mean_1A, fill = pupal_treatment
 
 
 
-
+#make a separate plot for each larval temperature
 larval_levels <- c("ambient", "cool", "mean", "warm", "hot")
 
 plots <- lapply(larval_levels, function(lt) {
@@ -124,7 +130,7 @@ plots <- lapply(larval_levels, function(lt) {
     theme(legend.position = "none") +
     labs(
       x = "Pupal temperature",
-      y = "egg size",
+      y = expression(Mean~egg~area~(mm^2)),
       title = paste("Larval temperature:", lt)
     )
 })
@@ -155,10 +161,42 @@ ggplot(results, aes(x = larval_treatment, y = egg_mean_1A, fill = larval_treatme
 
 ```
 ```{r}
-ggplot(results, aes(x = clutch_size, y = egg_mean_1A, fill = pupal_treatment)) +
-  geom_jitter(aes(color = pupal_treatment),  width = 0.15, size = 2, alpha = 1.5) +
-  scale_color_manual(values = temp_cols) +
+ggplot(results, aes(x = egg_mean_1A, y = clutch_size, fill = larval_treatment)) +
+  geom_jitter(aes(color = larval_treatment),  width = 0.15, size = 2, alpha = 1.5) +
+  scale_color_manual(values = temp_cols) #+
   #facet_wrap(~ larval_treatment) +
-  scale_y_continuous(limits = c(0.15, 0.25))
+  #scale_y_continuous(limits = c(0.15, 0.25)) 
+
+
+larval_levels <- c("ambient", "cool", "mean", "warm", "hot")
+
+plots <- lapply(larval_levels, function(lt) {
+
+  ggplot(
+    results %>% 
+    filter(larval_treatment == lt),
+    aes(x = egg_mean_1A, y = clutch_size, fill = pupal_treatment)
+  ) +
+    geom_jitter(aes(color = pupal_treatment),
+                width = 0.15, size = 2, alpha = 0.8)  +
+    #scale_y_continuous(limits = c(0.15, 0.25)) +
+    scale_fill_manual(values = temp_cols) +
+    scale_color_manual(values = temp_cols) +
+    theme_minimal() +
+    theme(legend.position = "none") +
+    labs(
+      x = "egg size (mm)",
+      y = "clutch size",
+      title = paste("Larval temperature:", lt)
+    )
+})
+
+# View first plot
+plots[[1]]
+plots[[2]]
+plots[[3]]
+plots[[4]]
+plots[[5]]
+
 ```
 
