@@ -161,8 +161,8 @@ ggplot(results, aes(x = larval_treatment, y = egg_mean_1A, fill = larval_treatme
 
 ```
 ```{r}
-ggplot(results, aes(x = egg_mean_1A, y = clutch_size, fill = larval_treatment)) +
-  geom_jitter(aes(color = larval_treatment),  width = 0.15, size = 2, alpha = 1.5) +
+ggplot(results, aes(x = egg_mean_1A, y = clutch_size, fill = pupal_treatment)) +
+  geom_jitter(aes(color = pupal_treatment),  width = 0.15, size = 2, alpha = 1.5) +
   scale_color_manual(values = temp_cols) #+
   #facet_wrap(~ larval_treatment) +
   #scale_y_continuous(limits = c(0.15, 0.25)) 
