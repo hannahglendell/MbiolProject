@@ -12,59 +12,16 @@ library(lme4)
 ```
 working on the raw egg size measurements for each individual egg
 
-```{r}
-egg_size_raw_results <- read.csv(here("data", "raw results - laura's method.csv"))
-#need to add an individual egg_ID column too, then need to merge both datasets together.
-
-egg_size_raw_results <- egg_size_raw_results %>%
-   mutate(unique_egg_ID = paste0(clutch_code, "_", egg_number)) %>%
-  select(-mean_area)
-
-
-
-
-
-clutch_size_results <- read.csv(here("data", "emergence_egg_counts(Sheet1).csv"))
-
-
-clutch_size_results$green_eggs  <- as.numeric(clutch_size_results$green_eggs)
-clutch_size_results$orange_eggs <- as.numeric(clutch_size_results$orange_eggs)
-
-
-clutch_size_results <- clutch_size_results %>%
-  filter(sex == "F") %>% #only looking at females
-  filter(!startsWith(adultID, "F")) %>% #remove sienna's females
-  mutate(clutch_size = green_eggs + orange_eggs) %>%
-  filter(!is.na(clutch_size)) %>% #remove those with NA clutch size
-  mutate(larval_treatment = str_extract(adultID, "^[^.]+")) %>% #make larval treatment column
-  mutate(
-    larval_treatment = recode(
-      larval_treatment,
-      CTRL = "ambient",
-      MEAN = "mean",
-      COOL = "cool",
-      WARM = "warm",
-      HOT  = "hot"
-    )) %>%
-  select(-treatment_combination, -notes, -age, -age_at_photo, -uploaded, -dead)
-
-#make sure clutch_code is a character
-egg_size_raw_results$clutch_code <- as.character(egg_size_raw_results$clutch_code)
-```
 
 ```{r}
-#join the two spreadsheets together
-results <- egg_size_raw_results %>%
-  left_join(clutch_size_results, by = "clutch_code")
+raw_egg_sizes <- read.csv(here("data", "clean data", "raw egg sizes.csv"))
 ```
-
-
 
 
 ```{r}
 #this is what I am aiming for in the end
 
-lm1 <- lmer(area ~ pupal_treatment + larval_treatment + weight + (1|clutchID), data = results)
+lm1 <- lmer(area ~ pupal_treatment + larval_treatment + weight + (1|clutchID), data = raw_egg_sizes)
 
 summary(lm1)
 

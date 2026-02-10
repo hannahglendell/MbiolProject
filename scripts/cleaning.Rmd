@@ -1,0 +1,130 @@
+---
+title: "cleaning"
+output: html_document
+---
+
+```{r}
+library(here)
+library(ggplot2)
+library(tidyverse)
+library(lme4)
+```
+
+CLEANING UP CLTUCH SIZE AND MEAN EGG SIZE
+
+```{r}
+#working with the egg counts of the five treatment groups
+#read in the dataset
+egg_counts <- read.csv(here("data", "raw data", "emergence_egg_counts(Sheet1).csv"))
+
+
+#make sure egg counts are stored as numbers
+egg_counts$green_eggs  <- as.numeric(egg_counts$green_eggs)
+egg_counts$orange_eggs <- as.numeric(egg_counts$orange_eggs)
+
+#################################################################################################################################
+#read in the wild moths spreadsheet
+wild_moths <- read.csv(here("data", "raw data", "wild moths spreadsheet.csv"))
+
+#make sure the egg counts are stored as numbers
+wild_moths$green_eggs <- as.numeric(wild_moths$green_eggs)
+wild_moths$green_eggs <- as.numeric(wild_moths$green_eggs)
+
+#clean up wild egg counts dataset
+wild_moths_clean <- wild_moths %>%
+  select(female_ID, green_eggs, orange_eggs, egg_area) %>%
+  mutate(clutch_size = green_eggs + orange_eggs) %>%
+  filter(!is.na(clutch_size)) %>%
+  mutate(pupal_treatment = "wild", larval_treatment = "wild", sex = "F") %>%
+  rename(adultID = female_ID, egg_mean_1A = egg_area)
+
+###################################################################################################################################
+
+
+#join the wild moth data onto the treatment group data
+#clean up the dataset so it only has the females I am interested in
+egg_counts_clean <- egg_counts %>%
+  bind_rows(wild_moths_clean) %>%
+  filter(sex == "F") %>% #only looking at females
+  filter(!startsWith(adultID, "F")) %>% #remove sienna's females
+  mutate(clutch_size = green_eggs + orange_eggs) %>% #clean up clutch size column
+  filter(!is.na(clutch_size)) %>% #remove those with NA clutch size
+  mutate(larval_treatment = str_extract(adultID, "^[^.]+")) %>% #make larval treatment column
+  mutate( #fix these two rows because they were not assigned pupal treatment correctly
+    pupal_treatment = case_when(
+      adultID == "CTRL.WTH.152_P6_H" ~ "hot",
+      adultID == "HOT.WTH.47_P2_A"   ~ "ambient",
+      TRUE                          ~ pupal_treatment
+    )
+  ) %>%
+  mutate(
+    larval_treatment = recode(
+      larval_treatment,
+      CTRL = "ambient",
+      MEAN = "mean",
+      COOL = "cool",
+      WARM = "warm",
+      HOT  = "hot",
+      WTH = "wild"
+    ))
+
+```
+
+```{r}
+#now I want to add in the mean egg sizes
+#read in the egg size spreadsheet
+egg_size_results <- read.csv(here("data", "raw data", "mean egg sizes.csv"))
+
+#make the clutch codes characters
+egg_size_results$clutch_code <- as.character(egg_size_results$clutch_code)
+
+###########################################################################################################################################################
+
+#join the mean egg sizes onto the clutch sizes, using the clutch codes
+results <- egg_counts_clean %>%
+  left_join(egg_size_results, by = "clutch_code") %>% #join the egg size results on by clutch code
+  mutate(egg_mean_1A = coalesce(egg_mean_1A.x, egg_mean_1A.y)) %>% #egg_mean_1A.x has the egg sizes of the wild moths, egg_mean_1A.y has the egg sizes of the treatment groups. I want to join these two columns together into one
+  select(-egg_mean_1A.x, -egg_mean_1A.y, -treatment_combination, -notes.x, age, -age_at_photo, -uploaded, -dead, -cg, -prev_tray, -new_tray, -egg_mean_blinded, - egg_mean_round_three, -notes.y, -X.y) %>% #remove the columns that I don't need
+  mutate(egg_mean_1A = coalesce(egg_mean_1A, replacement_image)) %>% #if I took a replacement image for a clutch, put this measurement into the egg_mean_1A column
+  select(-replacement_image) %>% #now I can get rid of the replacement image column
+  rename(egg_mean_1B = egg_mean_1B_same_set_of_10_eggs, egg_mean_2A = egg_mean_2A_different_set_of_10_eggs) %>% #rename these columns
+  filter(!is.na(egg_mean_1A)) %>% #get rid of any rows that still don't have an egg size
+  mutate(
+    clutch_ID   = if_else(pupal_treatment == "wild", adultID, clutchID),
+    clutch_code = if_else(pupal_treatment == "wild", adultID, clutch_code))
+
+```
+
+```{r}
+write.csv(results, file = here("data", "clean data", "results.csv"), row.names = FALSE)
+
+```
+
+CLEANING UP RAW EGG SIZES (OF EACH INDIVIDUAL EGG)
+
+```{r}
+#read in the raw egg sizes of the treatment groups
+raw_egg_sizes <- read.csv(here("data", "raw data", "raw egg sizes.csv"))
+
+#read in the raw egg sizes of the wild moths
+wild_raw_egg_sizes <- read.csv(here("data", "raw data", "wild raw egg sizes.csv"))
+
+#join together both spreadsheets
+all_raw_egg_sizes <- raw_egg_sizes %>%
+  bind_rows(wild_raw_egg_sizes)
+
+#now join the raw egg sizes onto the nice, clean, results spreadsheet that we made above.
+raw_egg_sizes_clean <- all_raw_egg_sizes %>%
+   mutate(unique_egg_ID = paste0(clutch_code, "_", egg_number)) %>% #give each measurement a unique egg ID
+  select(-mean_area) %>% #get rid of the mean area column - we don't need this
+  left_join(results, by = "clutch_code") %>% #join the spreadsheets together
+  filter(!str_detect(clutch_code, "_"))  %>% #remove any rows that have an _ in the clutch code - these are from the repeatability images.
+  filter(!is.na(adultID))
+```
+
+
+```{r}
+write.csv(raw_egg_sizes_clean, file = here("data", "clean data", "raw egg sizes.csv"), row.names = FALSE)
+```
+
+
