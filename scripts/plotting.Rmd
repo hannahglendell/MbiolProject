@@ -8,10 +8,10 @@ library(here)
 library(ggplot2)
 library(tidyverse)
 library(lme4)
+library(ggdist)
 ```
 
 EGG SIZE 
-
 ```{r}
 #read in the results data
 results <- read.csv(here("data", "clean data", "results.csv"))
@@ -39,8 +39,7 @@ temp_cols <- c(
 #ambient and wild plot
 larval_temp_ambient <- ggplot(
   results %>% filter(larval_treatment == "ambient"),
-  aes(x = pupal_treatment, y = egg_mean_1A, fill = pupal_treatment)
-) +
+  aes(x = pupal_treatment, y = egg_mean_1A, fill = pupal_treatment)) +
   geom_jitter(aes(color = pupal_treatment),
               width = 0.15, size = 2, alpha = 0.8) +
   geom_boxplot(alpha = 0.5, width = 0.7, outlier.shape = NA) +
@@ -48,8 +47,7 @@ larval_temp_ambient <- ggplot(
   geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
   scale_x_discrete(
     limits = levels(results$pupal_treatment),
-    drop = FALSE
-  ) +
+    drop = FALSE) +
   scale_fill_manual(values = temp_cols) +
   scale_color_manual(values = temp_cols) +
   theme_minimal() +
@@ -118,6 +116,26 @@ plots[[4]]
 
 
 ```
+REPEATABILITY 
+```{r}
+#need to come back to this and remove the two clutches were one photograph had 10 eggs and the other had 9 eggs
+#look at the repeatability of two different photographs of the same eggs
+ggplot(results, aes(x = egg_mean_1A, y = egg_mean_1B)) +
+  geom_point() +
+  geom_abline( intercept = 0, slope = 1)
+#get the r-squared
+cor(results$egg_mean_1A, results$egg_mean_1B, use = "complete.obs")^2
+
+
+#compare the mean of one set of 10 eggs, and then a different set of 10 eggs
+ggplot(results, aes(x = egg_mean_1A, y = egg_mean_2A)) +
+  geom_point() +
+  geom_abline( intercept = 0, slope = 1)
+#get the r-squared
+cor(results$egg_mean_1A, results$egg_mean_2A, use = "complete.obs")^2
+
+```
+
 
 CLUTCH SIZE
 
