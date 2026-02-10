@@ -15,6 +15,15 @@ working on the raw egg size measurements for each individual egg
 
 ```{r}
 raw_egg_sizes <- read.csv(here("data", "clean data", "raw egg sizes.csv"))
+
+#convert the pupal temperatures to factors so they plot in the correct order
+raw_egg_sizes$pupal_treatment <- factor(raw_egg_sizes$pupal_treatment,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
+
+#convert the larval  temperatures to factors so the plot in the correct order
+raw_egg_sizes$larval_treatment <- factor(raw_egg_sizes$larval_treatment,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
+
 ```
 
 
