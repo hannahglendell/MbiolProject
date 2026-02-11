@@ -1,5 +1,5 @@
 ---
-title: "plotting mean egg size"
+title: "clutch size"
 output: html_document
 ---
 
@@ -7,11 +7,11 @@ output: html_document
 library(here)
 library(ggplot2)
 library(tidyverse)
-library(lme4)
+library(patchwork)
 library(ggdist)
 ```
 
-EGG SIZE 
+
 ```{r}
 #read in the results data
 results <- read.csv(here("data", "clean data", "results.csv"))
@@ -33,112 +33,11 @@ temp_cols <- c(
   warm    = "#E87A36",
   hot     = "#AF0808")
 
-```
-
-```{r}
-#ambient and wild plot
-larval_temp_ambient <- ggplot(
-  results %>% filter(larval_treatment == "ambient"),
-  aes(x = pupal_treatment, y = egg_mean_1A, fill = pupal_treatment)) +
-  geom_jitter(aes(color = pupal_treatment),
-              width = 0.15, size = 2, alpha = 0.8) +
-  geom_boxplot(alpha = 0.5, width = 0.7, outlier.shape = NA) +
-  scale_y_continuous(limits = c(0.15, 0.27)) +
-  geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
-  scale_x_discrete(
-    limits = levels(results$pupal_treatment),
-    drop = FALSE) +
-  scale_fill_manual(values = temp_cols) +
-  scale_color_manual(values = temp_cols) +
-  theme_minimal() +
-  theme(legend.position = "none") +
-  labs(
-    x = "Pupal temperature",
-    y = "egg size",
-    title = "Larval temperature: ambient OR wild") +
-  #overlay wild data
-  geom_jitter(
-    data = results %>% 
-      filter(larval_treatment == "wild"),
-    aes(x = pupal_treatment, y = egg_mean_1A),
-    inherit.aes = FALSE,
-    color = "#D0CDCE",
-    width = 0.15,
-    size = 2,
-    alpha = 0.8) +
-  geom_boxplot(
-    data = results %>% filter(larval_treatment == "wild"),
-    aes(x = pupal_treatment, y = egg_mean_1A),
-    inherit.aes = FALSE,
-    fill = "#D0CDCE",
-    alpha = 0.3,
-    width = 0.7,
-    outlier.shape = NA
-  )
-
-larval_temp_ambient
-
-
-#make a separate plot for each larval temperature
-larval_levels <- c("cool", "mean", "warm", "hot")
-
-plots <- lapply(larval_levels, function(lt) {
-
-  ggplot(
-    results %>% 
-    filter(larval_treatment == lt),
-    aes(x = pupal_treatment, y = egg_mean_1A, fill = pupal_treatment)
-  ) +
-    geom_jitter(aes(color = pupal_treatment),
-                width = 0.15, size = 2, alpha = 0.8) +
-    geom_boxplot(alpha = 0.5, outlier.shape = NA) +
-    scale_x_discrete(
-        limits = levels(results$pupal_treatment),
-        drop = FALSE) +
-    scale_y_continuous(limits = c(0.15, 0.27)) +
-    scale_fill_manual(values = temp_cols) +
-    scale_color_manual(values = temp_cols) +
-    theme_minimal() +
-    theme(legend.position = "none") +
-    labs(
-      x = "Pupal temperature",
-      y = expression(Mean~egg~area~(mm^2)),
-      title = paste("Larval temperature:", lt)
-  )
-})
-
-# View first plot
-plots[[1]]
-plots[[2]]
-plots[[3]]
-plots[[4]]
-
 
 
 ```
-REPEATABILITY 
-```{r}
-#need to come back to this and remove the two clutches were one photograph had 10 eggs and the other had 9 eggs
-#look at the repeatability of two different photographs of the same eggs
-ggplot(results, aes(x = egg_mean_1A, y = egg_mean_1B)) +
-  geom_point() +
-  geom_abline( intercept = 0, slope = 1)
-#get the r-squared
-cor(results$egg_mean_1A, results$egg_mean_1B, use = "complete.obs")^2
 
-
-#compare the mean of one set of 10 eggs, and then a different set of 10 eggs
-ggplot(results, aes(x = egg_mean_1A, y = egg_mean_2A)) +
-  geom_point() +
-  geom_abline( intercept = 0, slope = 1)
-#get the r-squared
-cor(results$egg_mean_1A, results$egg_mean_2A, use = "complete.obs")^2
-
-```
-
-
-CLUTCH SIZE
-
+TOTAL CLUTCH SIZE
 
 ```{r}
 larval_temp_ambient <- ggplot(
@@ -148,6 +47,7 @@ larval_temp_ambient <- ggplot(
   geom_jitter(aes(color = pupal_treatment),
               width = 0.15, size = 2, alpha = 0.8) +
   geom_boxplot(alpha = 0.5, width = 0.7) +
+   geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
   scale_y_continuous(limits = c(0, 400)) +
   scale_x_discrete(
     limits = levels(results$pupal_treatment),
@@ -177,7 +77,8 @@ larval_temp_ambient <- ggplot(
     inherit.aes = FALSE,
     fill = "#D0CDCE",
     alpha = 0.3,
-    width = 0.7
+    width = 0.7,
+    outlier.shape= NA
   )
 
 larval_temp_ambient
@@ -193,11 +94,11 @@ plots <- lapply(larval_levels, function(lt) {
   ggplot(
     results %>% 
     filter(larval_treatment == lt),
-    aes(x = pupal_treatment, y = clutch_size, fill = pupal_treatment)
-  ) +
+    aes(x = pupal_treatment, y = clutch_size, fill = pupal_treatment)) +
     geom_jitter(aes(color = pupal_treatment),
                 width = 0.15, size = 2, alpha = 0.8) +
-    geom_boxplot(alpha = 0.5) +
+    geom_boxplot(alpha = 0.5, outlier.shape= NA) +
+    geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
     scale_x_discrete(
         limits = levels(results$pupal_treatment),
         drop = FALSE) +
@@ -213,6 +114,20 @@ plots <- lapply(larval_levels, function(lt) {
     )
 })
 
+all_plots <- c(list(larval_temp_ambient), plots)
+
+clutch_size_and_temp <- wrap_plots(all_plots, ncol = 3)
+
+ggsave(
+  here("figures", "clutch size and temp.png"),
+  plot = clutch_size_and_temp,
+  width = 20,
+  height = 10,
+  dpi = 300
+)
+
+
+
 # View first plot
 plots[[1]]
 plots[[2]]
@@ -222,27 +137,99 @@ plots[[4]]
 ```
 
 
-```{r}
-trade_off_plot <- 
-ggplot(results, aes(x = egg_mean_1A, y = clutch_size, fill = pupal_treatment)) +
-  geom_point(aes(color = pupal_treatment), alpha = 1.5) +
-  scale_color_manual(values = temp_cols) +
-  facet_wrap(~ larval_treatment + pupal_treatment) +
-    labs(
-      x = "egg size (mm)",
-      y = "clutch size")
+NUMBER OF ORANGE (FERTILE) EGGS
 
-trade_off_plot
+
+```{r}
+larval_temp_ambient <- ggplot(
+  results %>% filter(larval_treatment == "ambient"),
+  aes(x = pupal_treatment, y = orange_eggs, fill = pupal_treatment)
+) +
+  geom_jitter(aes(color = pupal_treatment),
+              width = 0.15, size = 2, alpha = 0.8) +
+  geom_boxplot(alpha = 0.5, width = 0.7) +
+   geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
+  scale_y_continuous(limits = c(0, 400)) +
+  scale_x_discrete(
+    limits = levels(results$pupal_treatment),
+    drop = FALSE
+  ) +
+  scale_fill_manual(values = temp_cols) +
+  scale_color_manual(values = temp_cols) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(
+    x = "Pupal temperature",
+    y = "number of fertile eggs",
+    title = "Larval temperature: ambient OR wild") +
+  #overlay wild data
+  geom_jitter(
+    data = results %>% 
+      filter(larval_treatment == "wild"),
+    aes(x = pupal_treatment, y = orange_eggs),
+    inherit.aes = FALSE,
+    color = "#D0CDCE",
+    width = 0.15,
+    size = 2,
+    alpha = 0.8) +
+  geom_boxplot(
+    data = results %>% filter(larval_treatment == "wild"),
+    aes(x = pupal_treatment, y = orange_eggs),
+    inherit.aes = FALSE,
+    fill = "#D0CDCE",
+    alpha = 0.3,
+    width = 0.7,
+    outlier.shape= NA
+  )
+
+larval_temp_ambient
+```
+
+```{r}
+larval_levels <- c("cool", "mean", "warm", "hot")
+
+plots <- lapply(larval_levels, function(lt) {
+
+  ggplot(
+    results %>% 
+    filter(larval_treatment == lt),
+    aes(x = pupal_treatment, y = orange_eggs, fill = pupal_treatment)) +
+    geom_jitter(aes(color = pupal_treatment),
+                width = 0.15, size = 2, alpha = 0.8) +
+    geom_boxplot(alpha = 0.5, outlier.shape= NA) +
+    geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
+    scale_x_discrete(
+        limits = levels(results$pupal_treatment),
+        drop = FALSE) +
+    scale_y_continuous(limits = c(0, 400)) +
+    scale_fill_manual(values = temp_cols) +
+    scale_color_manual(values = temp_cols) +
+    theme_minimal() +
+    theme(legend.position = "none") +
+    labs(
+      x = "Pupal temperature",
+      y = "number of fertile eggs",
+      title = paste("Larval temperature:", lt)
+    )
+})
+
+all_plots <- c(list(larval_temp_ambient), plots)
+
+fertile_eggs_and_temp <- wrap_plots(all_plots, ncol = 3)
 
 ggsave(
-  here("figures", "trade_off_plot.png"),
-  plot = trade_off_plot,
-  width = 17,
+  here("figures", "fertile eggs and temp.png"),
+  plot = fertile_eggs_and_temp,
+  width = 20,
   height = 10,
   dpi = 300
 )
 
-
-
+# View first plot
+plots[[1]]
+plots[[2]]
+plots[[3]]
+plots[[4]]
 
 ```
+

@@ -83,7 +83,7 @@ egg_size_results$clutch_code <- as.character(egg_size_results$clutch_code)
 results <- egg_counts_clean %>%
   left_join(egg_size_results, by = "clutch_code") %>% #join the egg size results on by clutch code
   mutate(egg_mean_1A = coalesce(egg_mean_1A.x, egg_mean_1A.y)) %>% #egg_mean_1A.x has the egg sizes of the wild moths, egg_mean_1A.y has the egg sizes of the treatment groups. I want to join these two columns together into one
-  select(-egg_mean_1A.x, -egg_mean_1A.y, -treatment_combination, -notes.x, age, -age_at_photo, -uploaded, -dead, -cg, -prev_tray, -new_tray, -egg_mean_blinded, - egg_mean_round_three, -notes.y, -X.y) %>% #remove the columns that I don't need
+  select(-egg_mean_1A.x, -egg_mean_1A.y, -treatment_combination, -notes.x, age, -age_at_photo, -uploaded, -dead, -cg, -prev_tray, -new_tray, -egg_mean_blinded, - egg_mean_round_three, -X.y) %>% #remove the columns that I don't need
   mutate(egg_mean_1A = coalesce(egg_mean_1A, replacement_image)) %>% #if I took a replacement image for a clutch, put this measurement into the egg_mean_1A column
   select(-replacement_image) %>% #now I can get rid of the replacement image column
   rename(egg_mean_1B = egg_mean_1B_same_set_of_10_eggs, egg_mean_2A = egg_mean_2A_different_set_of_10_eggs) %>% #rename these columns
@@ -91,6 +91,8 @@ results <- egg_counts_clean %>%
   mutate(
     clutch_ID   = if_else(pupal_treatment == "wild", adultID, clutchID),
     clutch_code = if_else(pupal_treatment == "wild", adultID, clutch_code))
+
+
 
 ```
 

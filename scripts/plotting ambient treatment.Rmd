@@ -11,7 +11,7 @@ library(here)
 
 ```{r}
 #read in the dataset
-ambient_data <- read.csv2(here("data", "data_ambient_1_081225.csv"))
+ambient_data <- read.csv2(here("data", "raw data", "data_ambient_1_081225.csv"))
 
 #rename the datetime column
 names(ambient_data)[names(ambient_data) == "X2023.01.30.15.30"] <- "datetime"
@@ -68,7 +68,7 @@ ggplot(daily_means, aes(x = date, y = mean_temperature)) +
 ```{r}
 #now i need to calculate the daily mean temperature for the temperature treatments
 
-temperature_treatments <- read.csv(here("data", "mbiols_daily_temperature_data.csv"))
+temperature_treatments <- read.csv(here("data", "raw data", "mbiols_daily_temperature_data.csv"))
 ```
 
 
@@ -200,8 +200,6 @@ ggsave("temperature treatments.png", plot = plot_1, width = 8, height = 6, dpi =
  
 
 ```{r}
-library(ggplot2)
-library(dplyr)
 
 # Filter for October 1, 2025 onwards
 plot_data_oct_onwards <- plot_data_clean %>%
@@ -219,7 +217,6 @@ ggplot() +
   # Overlay the daily mean temperature for ambient treatment (dashed, thinner)
   geom_line(data = daily_means_oct_onwards, 
             aes(x = date, y = mean_temperature, color = treatment),
-            linetype = "dashed",
             size = 0.8) +
   scale_color_manual(
     values = c(
@@ -255,8 +252,7 @@ ggplot() +
 
 ```
 ```{r}
-library(ggplot2)
-library(dplyr)
+
 
 # Prepare the ambient overlay by adding a "treatment" column
 daily_means <- daily_means %>%
@@ -280,7 +276,6 @@ ggplot() +
   # Overlay the daily mean temperature for ambient treatment (dashed, thinner)
   geom_line(data = daily_means, 
             aes(x = date, y = mean_temperature, color = treatment),
-            linetype = "dashed",
             size = 0.8) +   # thinner line for ambient
   scale_color_manual(
     values = c(

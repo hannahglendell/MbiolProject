@@ -1,0 +1,155 @@
+---
+title: "plotting mean egg size"
+output: html_document
+---
+
+```{r}
+library(here)
+library(ggplot2)
+library(tidyverse)
+library(lme4)
+library(ggdist)
+```
+
+EGG SIZE 
+```{r}
+#read in the results data
+results <- read.csv(here("data", "clean data", "results.csv"))
+
+
+#convert the pupal temperatures to factors so they plot in the correct order
+results$pupal_treatment <- factor(results$pupal_treatment,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
+
+#convert the larval  temperatures to factors so the plot in the correct order
+results$larval_treatment <- factor(results$larval_treatment,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
+
+#assign colours to the temperatures                           
+temp_cols <- c(
+  ambient = "#484A4C",
+  cool    = "#76C0CC",
+  mean    = "#F9CA0F",
+  warm    = "#E87A36",
+  hot     = "#AF0808")
+
+
+results %>% 
+  filter(is.na(pupal_treatment))
+```
+
+```{r}
+#ambient and wild plot
+larval_temp_ambient <- ggplot(
+  results %>% filter(larval_treatment == "ambient"),
+  aes(x = pupal_treatment, y = egg_mean_1A, fill = pupal_treatment)) +
+  geom_jitter(aes(color = pupal_treatment),
+              width = 0.15, size = 2, alpha = 0.8) +
+  geom_boxplot(alpha = 0.5, width = 0.7, outlier.shape = NA) +
+  scale_y_continuous(limits = c(0.15, 0.27)) +
+  geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
+  scale_x_discrete(
+    limits = levels(results$pupal_treatment),
+    drop = FALSE) +
+  scale_fill_manual(values = temp_cols) +
+  scale_color_manual(values = temp_cols) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(
+    x = "Pupal temperature",
+    y = "egg size",
+    title = "Larval temperature: ambient OR wild") +
+  #overlay wild data
+  geom_jitter(
+    data = results %>% 
+      filter(larval_treatment == "wild"),
+    aes(x = pupal_treatment, y = egg_mean_1A),
+    inherit.aes = FALSE,
+    color = "#D0CDCE",
+    width = 0.15,
+    size = 2,
+    alpha = 0.8) +
+  geom_boxplot(
+    data = results %>% filter(larval_treatment == "wild"),
+    aes(x = pupal_treatment, y = egg_mean_1A),
+    inherit.aes = FALSE,
+    fill = "#D0CDCE",
+    alpha = 0.3,
+    width = 0.7,
+    outlier.shape = NA
+  )
+
+larval_temp_ambient
+
+
+#make a separate plot for each larval temperature
+larval_levels <- c("cool", "mean", "warm", "hot")
+
+plots <- lapply(larval_levels, function(lt) {
+
+  ggplot(
+    results %>% 
+    filter(larval_treatment == lt),
+    aes(x = pupal_treatment, y = egg_mean_1A, fill = pupal_treatment)
+  ) +
+    geom_jitter(aes(color = pupal_treatment),
+                width = 0.15, size = 2, alpha = 0.8) +
+    geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+    scale_x_discrete(
+        limits = levels(results$pupal_treatment),
+        drop = FALSE) +
+    scale_y_continuous(limits = c(0.15, 0.27)) +
+    scale_fill_manual(values = temp_cols) +
+    scale_color_manual(values = temp_cols) +
+    theme_minimal() +
+    theme(legend.position = "none") +
+    labs(
+      x = "Pupal temperature",
+      y = expression(Mean~egg~area~(mm^2)),
+      title = paste("Larval temperature:", lt)
+  )
+})
+
+# View first plot
+plots[[1]]
+plots[[2]]
+plots[[3]]
+plots[[4]]
+
+
+
+```
+REPEATABILITY 
+```{r}
+#need to come back to this and remove the two clutches were one photograph had 10 eggs and the other had 9 eggs
+
+repeatability_data <- results %>%
+  filter(!is.na(egg_mean_2A)) %>%
+  filter(!clutch_code %in% c(7800, 8425)) #remove these two rows where I made mistakes in repeatability photos
+  
+
+
+#look at the repeatability of two different photographs of the same eggs
+ggplot(repeatability_data, aes(x = egg_mean_1A, y = egg_mean_1B)) +
+  geom_point() +
+  geom_abline( intercept = 0, slope = 1) +
+  labs( x = "photograph 1", y = "photograph 2")
+#get the r-squared
+cor(repeatability_data$egg_mean_1A, repeatability_data$egg_mean_1B, use = "complete.obs")^2
+
+
+#compare the mean of one set of 10 eggs, and then a different set of 10 eggs
+ggplot(repeatability_data, aes(x = egg_mean_1A, y = egg_mean_2A)) +
+  geom_point() +
+  geom_abline( intercept = 0, slope = 1) +
+  labs( x = "first set of 10 eggs", y = "different set of 10 eggs")
+#get the r-squared
+cor(repeatability_data$egg_mean_1A, repeatability_data$egg_mean_2A, use = "complete.obs")^2
+
+```
+
+
+
+
+
+
