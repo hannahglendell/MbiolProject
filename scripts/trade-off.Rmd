@@ -37,13 +37,31 @@ temp_cols <- c(
 ```
 
 ```{r}
+wild_moths_trade_off <- 
+ggplot(
+  results %>% filter(pupal_treatment == "wild"),
+  aes(x = egg_mean_1A, y = clutch_size, fill = pupal_treatment)) +
+  geom_point() +
+    labs(
+      x = expression(Mean~egg~area~(mm^2)),
+      y = "clutch size")
+
+wild_moths_trade_off
+```
+
+
+
+
+```{r}
 trade_off_plot <- 
-ggplot(results, aes(x = egg_mean_1A, y = clutch_size, fill = pupal_treatment)) +
+ggplot(
+  results %>% filter(pupal_treatment != "wild"),
+  aes(x = egg_mean_1A, y = clutch_size, fill = pupal_treatment)) +
   geom_point(aes(color = pupal_treatment), alpha = 1.5) +
   scale_color_manual(values = temp_cols) +
   facet_wrap(~ larval_treatment + pupal_treatment) +
     labs(
-      x = "egg size (mm)",
+      x = expression(Mean~egg~area~(mm^2)),
       y = "clutch size")
 
 trade_off_plot
@@ -52,7 +70,7 @@ ggsave(
   here("figures", "trade_off_plot.png"),
   plot = trade_off_plot,
   width = 17,
-  height = 10,
+  height = 12,
   dpi = 300
 )
 
@@ -60,3 +78,28 @@ ggsave(
 
 
 ```
+
+```{r}
+ggplot(
+  results %>% filter(pupal_treatment != "wild"),
+  aes(x = egg_mean_1A, y = clutch_size, fill = pupal_treatment)) +
+  geom_point(aes(color = pupal_treatment), alpha = 1.5) +
+  scale_color_manual(values = temp_cols) +
+  facet_wrap(~ pupal_treatment) +
+    labs(
+      x = expression(Mean~egg~area~(mm^2)),
+      y = "clutch size")
+
+
+
+ggplot(
+  results %>% filter(pupal_treatment != "wild"),
+  aes(x = egg_mean_1A, y = clutch_size, fill = larval_treatment)) +
+  geom_point(aes(color = larval_treatment), alpha = 1.5) +
+  scale_color_manual(values = temp_cols) +
+  facet_wrap(~ larval_treatment) +
+    labs(
+      x = expression(Mean~egg~area~(mm^2)),
+      y = "clutch size")
+```
+

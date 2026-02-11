@@ -34,8 +34,7 @@ temp_cols <- c(
   hot     = "#AF0808")
 
 
-results %>% 
-  filter(is.na(pupal_treatment))
+
 ```
 
 ```{r}
