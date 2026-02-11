@@ -57,7 +57,7 @@ larval_temp_ambient <- ggplot(
   theme(legend.position = "none") +
   labs(
     x = "Pupal temperature",
-    y = "egg size",
+    y = expression(Mean~egg~area~(mm^2)),
     title = "Larval temperature: ambient OR wild") +
   #overlay wild data
   geom_jitter(
@@ -95,6 +95,7 @@ plots <- lapply(larval_levels, function(lt) {
     geom_jitter(aes(color = pupal_treatment),
                 width = 0.15, size = 2, alpha = 0.8) +
     geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+    geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
     scale_x_discrete(
         limits = levels(results$pupal_treatment),
         drop = FALSE) +
@@ -109,6 +110,20 @@ plots <- lapply(larval_levels, function(lt) {
       title = paste("Larval temperature:", lt)
   )
 })
+
+all_plots <- c(list(larval_temp_ambient), plots)
+
+egg_size_and_temp <- wrap_plots(all_plots, ncol = 3)
+
+ggsave(
+  here("figures", "egg size and temp.png"),
+  plot = egg_size_and_temp,
+  width = 20,
+  height = 10,
+  dpi = 300
+)
+
+
 
 # View first plot
 plots[[1]]
@@ -133,6 +148,12 @@ repeatability_data <- results %>%
 ggplot(repeatability_data, aes(x = egg_mean_1A, y = egg_mean_1B)) +
   geom_point() +
   geom_abline( intercept = 0, slope = 1) +
+  scale_y_continuous(limits = c(0.16, 0.27)) +
+  scale_x_continuous(limits = c(0.16, 0.27)) +
+  annotate("text",
+           x = 0.17, y = 0.26,
+           label = "R² = 0.92",
+           size = 5) +
   labs( x = "photograph 1", y = "photograph 2")
 #get the r-squared
 cor(repeatability_data$egg_mean_1A, repeatability_data$egg_mean_1B, use = "complete.obs")^2
@@ -142,6 +163,12 @@ cor(repeatability_data$egg_mean_1A, repeatability_data$egg_mean_1B, use = "compl
 ggplot(repeatability_data, aes(x = egg_mean_1A, y = egg_mean_2A)) +
   geom_point() +
   geom_abline( intercept = 0, slope = 1) +
+  scale_y_continuous(limits = c(0.16, 0.27)) +
+  scale_x_continuous(limits = c(0.16, 0.27)) +
+  annotate("text",
+           x = 0.17, y = 0.26,
+           label = "R² = 0.81",
+           size = 5) +
   labs( x = "first set of 10 eggs", y = "different set of 10 eggs")
 #get the r-squared
 cor(repeatability_data$egg_mean_1A, repeatability_data$egg_mean_2A, use = "complete.obs")^2

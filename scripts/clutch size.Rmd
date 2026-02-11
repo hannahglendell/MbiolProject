@@ -139,7 +139,6 @@ plots[[4]]
 
 NUMBER OF ORANGE (FERTILE) EGGS
 
-
 ```{r}
 larval_temp_ambient <- ggplot(
   results %>% filter(larval_treatment == "ambient"),
@@ -230,6 +229,7 @@ plots[[1]]
 plots[[2]]
 plots[[3]]
 plots[[4]]
-
 ```
+
+
 
