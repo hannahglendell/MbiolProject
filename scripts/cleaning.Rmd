@@ -90,9 +90,10 @@ results <- egg_counts_clean %>%
   filter(!is.na(egg_mean_1A)) %>% #get rid of any rows that still don't have an egg size
   mutate(
     clutch_ID   = if_else(pupal_treatment == "wild", adultID, clutchID),
-    clutch_code = if_else(pupal_treatment == "wild", adultID, clutch_code))
+    clutch_code = if_else(pupal_treatment == "wild", adultID, clutch_code),
+    maternalID = sub("^[^.]*\\.[^.]*\\.([^_]+)_.*$", "\\1", adultID))
 
-
+results$sex <- as.character(results$sex)
 
 ```
 
@@ -128,4 +129,42 @@ raw_egg_sizes_clean <- all_raw_egg_sizes %>%
 write.csv(raw_egg_sizes_clean, file = here("data", "clean data", "raw egg sizes.csv"), row.names = FALSE)
 ```
 
+CLEANING UP THE AMBIENT TEMPERATURE DATA
+
+```{r}
+#read in the dataset
+ambient_data <- read.csv2(here("data", "raw data", "data_ambient_1_081225.csv"))
+
+#rename the datetime column
+names(ambient_data)[names(ambient_data) == "X2023.01.30.15.30"] <- "datetime"
+
+#force it to be plaintext first
+ambient_data$datetime <- as.character(ambient_data$datetime)
+
+#cleanup weird characters
+ambient_data$datetime <- gsub("-", " ", ambient_data$datetime)
+
+#convert to datetime
+ambient_data$datetime <- as.POSIXct(
+  ambient_data$datetime,
+  format = "%Y.%m.%d %H:%M",
+  tz = "UTC"
+)
+
+
+#rename the temperature column
+ambient_data <- ambient_data %>%
+  rename(temperature = X21.06)
+
+#now filter so that I am only looking at data from the first february 2025. for some reason, the temperatures in january seem way too high
+#was the thermologger used for something else in january? was it indoors?
+ambient_data_feb2025 <- ambient_data %>%
+  filter(datetime >= as.POSIXct("2025-02-01 00:00:00", tz = "UTC")) %>%
+  select(datetime, temperature)
+
+#make sure temperature is saved as a numeric variable
+ambient_data_feb2025$temperature <- as.numeric(ambient_data_feb2025$temperature)
+
+write.csv(ambient_data_feb2025, file = here("data", "clean data", "ambient temperatures.csv"), row.names = FALSE)
+```
 

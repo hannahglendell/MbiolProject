@@ -1,0 +1,211 @@
+---
+title: "modelling clutch size"
+output: html_document
+---
+
+```{r}
+library(here)
+library(ggplot2)
+library(tidyverse)
+library(lme4)
+library(performance)
+library(MASS)
+```
+
+```{r}
+
+results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
+
+#make maternal ID a factor
+results$maternalID <- as.factor(results$maternalID)
+
+#make a treatment combination column
+results <- results %>%
+  mutate(treatment_combination = paste(larval_treatment, pupal_treatment, sep = "_"))  %>%
+  mutate()
+
+
+#remove ambient, because these need to be modelled separately. also remove larval treatment of cool and mean, because the sample size isn't big enough to model - just not enough clutches.
+#I think I will model the ambient larva treatment separately.
+results_filtered <- results %>%
+  filter(pupal_treatment != "ambient",
+         larval_treatment != "ambient",
+         larval_treatment != "cool",
+         larval_treatment != "mean",
+         larval_treatment != "wild") %>%
+  mutate(numerical_pupal_treatment = case_when(
+    pupal_treatment == "cool"  ~ -1.5,
+    pupal_treatment == "mean"  ~  0.0,
+    pupal_treatment == "warm"  ~  1.5,
+    pupal_treatment == "hot"   ~  2.5,
+    TRUE ~ NA_real_
+  )) %>%
+  mutate(numerical_larval_treatment = case_when(
+    larval_treatment == "warm"  ~  1.5,
+    larval_treatment == "hot"   ~  2.5,
+    TRUE ~ NA_real_
+  )) %>%
+  mutate(weight_mg = weight * 1000) %>%
+  mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE))
+
+
+results_filtered <- results_filtered %>%
+  mutate(
+    larval_treatment = factor(larval_treatment, levels = c("warm","hot")),
+    pupal_treatment = factor(pupal_treatment, levels = c("cool","mean","warm","hot"))
+  )
+
+results_filtered <- results_filtered %>%
+  mutate(
+  pupal_treatment_centered  = numerical_pupal_treatment  + 1.5,
+   larval_treatment_centered = numerical_larval_treatment - 1.5)
+
+#how many eggs were counted in total
+sum(results$clutch_size)
+```
+
+```{r}
+#look at the distribution of clutch size
+ggplot(results, aes(x = clutch_size)) +
+  geom_histogram(binwidth = 10) +  # change this value to control bin width +
+  labs(title = "Distribution of clutch size",
+       x = "clutch size",
+       y = "Count") +
+  theme_minimal()
+
+
+# mean
+mean(results_filtered$clutch_size, na.rm = TRUE)
+
+# variance
+var(results_filtered$clutch_size, na.rm = TRUE)
+
+#look at the distribution of female mass
+ggplot(results, aes(x = weight)) +
+  geom_histogram(binwidth = 0.005) +  # change this value to control bin width +
+  labs(title = "Distribution of female mass",
+       x = "female mass",
+       y = "Count") +
+  theme_minimal()
+
+#look at the distribution of mean egg sizes
+ggplot(results, aes(x = egg_mean_1A)) +
+  geom_histogram(binwidth = 0.01) +  # change this value to control bin width +
+  labs(title = "Distribution of mean egg size",
+       x = "mean egg size",
+       y = "Count") +
+  theme_minimal()
+```
+
+```{r}
+
+#full model
+
+lm1 <-  glmer(clutch_size ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg_centered + (1|maternalID),  family = poisson(link = "log"), data = results_filtered)
+
+summary(lm1)
+
+
+#using an identity link means that no data transformation is applied
+#I have centered female weight so that centered weight = 0 corresponds to the mean female weight
+
+
+```
+
+
+```{r}
+
+
+
+lm1 <-  glm(clutch_size ~ numerical_larval_treatment, family = poisson(link = "identity"), data =  results_filtered)
+summary(lm1)
+
+
+
+lm2 <-  glm(clutch_size ~ numerical_larval_treatment + weight_mg_centered, family = poisson(link = "identity"), data =  results_filtered)
+summary(lm2)
+
+
+lm3 <-  glm(clutch_size ~ weight_mg_centered, family = poisson(link = "identity"), data =  results_filtered)
+summary(lm3)
+
+lm4 <-  glm(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg_centered, family = poisson(link = "identity"), data =  results_filtered)
+summary(lm4)
+
+
+
+lm5 <-  glmer(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg_centered + (1|maternalID), family = poisson(link = "identity"), data =  results_filtered)
+summary(lm5)
+
+
+lm6 <-  glmer(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg_centered + (1|maternalID), family = poisson(link = "log"), data =  results_filtered)
+summary(lm6)
+
+lm7 <-  glmer(clutch_size ~ numerical_larval_treatment * numerical_pupal_treatment + weight_mg_centered + (1|maternalID), family = poisson(link = "log"), data =  results_filtered)
+summary(lm7)
+plot(lm7)
+
+lm7_nb <- glm.nb( clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg_centered, data = results_filtered)
+
+summary(lm7_nb)
+
+
+lm8 <-  lmer(clutch_size ~ numerical_larval_treatment * numerical_pupal_treatment + weight_mg_centered + (1|maternalID), data =  results_filtered)
+summary(lm8)
+
+plot(lm8)
+
+```
+
+
+THOSE THAT HAD AMBIENT LARVAL TREATMENT
+```{r}
+#going to try modelling those that had ambient larval temp
+
+results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
+
+#make maternal ID a factor
+results$maternalID <- as.factor(results$maternalID)
+
+#make a treatment combination column
+results <- results %>%
+  mutate(treatment_combination = paste(larval_treatment, pupal_treatment, sep = "_"))  %>%
+  mutate()
+
+
+#remove ambient, because these need to be modelled separately. also remove larval treatment of cool and mean, because the sample size isn't big enough to model - just not enough clutches.
+#I think I will model the ambient larva treatment separately.
+results_ambient_larval <- results %>%
+  mutate(numerical_pupal_treatment = case_when(
+    pupal_treatment == "cool"  ~ -1.5,
+    pupal_treatment == "mean"  ~  0.0,
+    pupal_treatment == "warm"  ~  1.5,
+    pupal_treatment == "hot"   ~  2.5,
+    TRUE ~ NA_real_ )) %>%
+    filter(
+         larval_treatment == "ambient",
+         pupal_treatment != "ambient") %>%
+  mutate(weight_mg = weight * 1000) %>%
+  mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE))
+
+
+results_ambient_larval <- results_filtered %>%
+  mutate(
+    pupal_treatment = factor(pupal_treatment, levels = c("cool","mean","warm","hot"))
+  )
+
+```
+
+
+
+```{r}
+lm1_nb <- glmer.nb( clutch_size ~ numerical_pupal_treatment + weight_mg_centered + (1|maternalID), data = results_filtered)
+
+summary(lm1_nb)
+```
+
+
+
+
+
+

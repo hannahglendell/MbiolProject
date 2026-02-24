@@ -117,5 +117,24 @@ ggplot(weight_results, aes(x = weight, y = egg_mean_1A)) +
       x = "female mass",
       y = "egg size")
 
+weight_and_clutch_size <- ggplot(weight_results, aes(x = weight, y = egg_mean_1A)) +
+  geom_point() +
+  facet_wrap(~ pupal_treatment + larval_treatment) +
+    labs(
+      x = "female mass",
+      y = "egg size")
+
+
+
+ggsave(
+  here("figures", "weight and clutch size.png"),
+  plot = weight_and_clutch_size,
+  width = 17,
+  height = 10,
+  dpi = 300
+)
+
+
+
 ```
 

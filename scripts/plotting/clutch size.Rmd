@@ -135,6 +135,62 @@ plots[[3]]
 plots[[4]]
 
 ```
+```{r}
+larval_levels <- c("cool", "mean", "warm", "hot")
+
+plots <- lapply(larval_levels, function(lt) {
+
+  ggplot(
+    results %>% 
+    filter(larval_treatment == lt),
+    aes(x = pupal_treatment, y = clutch_size)) +
+    geom_jitter(aes(),
+                width = 0.15, size = 2, alpha = 0.8) +
+    geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
+    geom_line(aes(group = maternalID), alpha = 0.3) +
+    scale_x_discrete(
+        limits = levels(results$pupal_treatment),
+        drop = FALSE) +
+    scale_y_continuous(limits = c(0, 400)) +
+    theme_minimal() +
+    theme(legend.position = "none") +
+    labs(
+      x = "Pupal temperature",
+      y = "Clutch size (number of eggs)",
+      title = paste("Larval temperature:", lt)
+    )
+})
+
+
+# View first plot
+plots[[1]]
+plots[[2]]
+plots[[3]]
+plots[[4]]
+
+clutch_size_maternal_ID <- results %>%
+  filter(pupal_treatment != "wild") %>%   # keep all except wild
+  ggplot(aes(x = maternalID, y = clutch_size)) +
+  geom_point() +
+  facet_wrap(~maternalID)
+
+clutch_size_maternal_ID
+
+ggsave(
+  here("figures", "clutch size and maternalID.png"),
+  plot = clutch_size_maternal_ID,
+  width = 20,
+  height = 15,
+  dpi = 300
+)
+
+
+
+```
+
+
+
+
 
 
 NUMBER OF ORANGE (FERTILE) EGGS

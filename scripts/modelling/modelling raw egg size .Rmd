@@ -1,0 +1,91 @@
+---
+title: "modelling 2.0"
+output: html_document
+---
+
+
+```{r}
+library(here)
+library(ggplot2)
+library(tidyverse)
+library(lme4)
+```
+working on the raw egg size measurements for each individual egg
+
+
+```{r}
+raw_egg_sizes <- read.csv(here("data", "clean data", "raw egg sizes.csv"))
+
+raw_egg_sizes <- raw_egg_sizes %>%
+  mutate(maternalID = sub("^[^.]*\\.[^.]*\\.([^_]+)_.*$", "\\1", adultID))
+
+#make maternal ID a factor
+raw_egg_sizes$maternalID <- as.factor(raw_egg_sizes$maternalID)
+
+#convert the pupal temperatures to factors so they plot in the correct order
+raw_egg_sizes$pupal_treatment <- factor(raw_egg_sizes$pupal_treatment,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
+
+#convert the larval  temperatures to factors so the plot in the correct order
+raw_egg_sizes$larval_treatment <- factor(raw_egg_sizes$larval_treatment,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
+
+
+
+#remove ambient, because these need to be modelled separately. also remove larval treatment of cool and mean, because the sample size isn't big enough to model - just not enough clutches.
+#I think I will model the ambient larva treatment separately.
+raw_egg_sizes_filtered <- raw_egg_sizes %>%
+  filter(pupal_treatment != "ambient",
+         larval_treatment != "ambient",
+         larval_treatment != "cool",
+         larval_treatment != "mean",
+         larval_treatment != "wild") %>%
+  mutate(numerical_pupal_treatment = case_when(
+    pupal_treatment == "cool"  ~ -1.5,
+    pupal_treatment == "mean"  ~  0.0,
+    pupal_treatment == "warm"  ~  1.5,
+    pupal_treatment == "hot"   ~  2.5,
+    TRUE ~ NA_real_
+  )) %>%
+  mutate(numerical_larval_treatment = case_when(
+    larval_treatment == "warm"  ~  1.5,
+    larval_treatment == "hot"   ~  2.5,
+    TRUE ~ NA_real_
+  )) %>%
+  mutate(weight_mg = weight * 1000) %>%
+  mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE))
+
+
+raw_egg_sizes_filtered <- raw_egg_sizes_filtered %>%
+  mutate(
+    larval_treatment = factor(larval_treatment, levels = c("warm","hot")),
+    pupal_treatment = factor(pupal_treatment, levels = c("cool","mean","warm","hot"))
+  )
+```
+
+```{r}
+#look at the distributions of egg size
+ggplot(raw_egg_sizes_filtered, aes(x = area)) +
+  geom_histogram(binwidth = 0.01) +  # change this value to control bin width +
+  labs(title = "Distribution of Egg Sizes",
+       x = "Egg Area",
+       y = "Count") +
+  theme_minimal()
+```
+
+
+
+
+```{r}
+#this is what I am aiming for in the end
+
+lm1 <- lmer(area ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg_centered + (1|clutchID) + (1|maternalID), data = raw_egg_sizes_filtered)
+
+summary(lm1)
+
+confint(lm1)
+
+icc(lm1)
+
+```
+
