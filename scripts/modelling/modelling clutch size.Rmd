@@ -10,6 +10,7 @@ library(tidyverse)
 library(lme4)
 library(performance)
 library(MASS)
+library(pscl)
 ```
 
 ```{r}
@@ -24,6 +25,8 @@ results <- results %>%
   mutate(treatment_combination = paste(larval_treatment, pupal_treatment, sep = "_"))  %>%
   mutate()
 
+#number of mated females in each treatment group 
+table(results$treatment_combination)
 
 #remove ambient, because these need to be modelled separately. also remove larval treatment of cool and mean, because the sample size isn't big enough to model - just not enough clutches.
 #I think I will model the ambient larva treatment separately.
@@ -31,7 +34,7 @@ results_filtered <- results %>%
   filter(pupal_treatment != "ambient",
          larval_treatment != "ambient",
          larval_treatment != "cool",
-         larval_treatment != "mean",
+        larval_treatment != "mean",
          larval_treatment != "wild") %>%
   mutate(numerical_pupal_treatment = case_when(
     pupal_treatment == "cool"  ~ -1.5,
@@ -55,30 +58,41 @@ results_filtered <- results_filtered %>%
     pupal_treatment = factor(pupal_treatment, levels = c("cool","mean","warm","hot"))
   )
 
-results_filtered <- results_filtered %>%
-  mutate(
-  pupal_treatment_centered  = numerical_pupal_treatment  + 1.5,
-   larval_treatment_centered = numerical_larval_treatment - 1.5)
-
 #how many eggs were counted in total
 sum(results$clutch_size)
+
+
 ```
 
 ```{r}
 #look at the distribution of clutch size
 ggplot(results, aes(x = clutch_size)) +
-  geom_histogram(binwidth = 10) +  # change this value to control bin width +
+  geom_histogram(binwidth = 5) +  # change this value to control bin width +
   labs(title = "Distribution of clutch size",
        x = "clutch size",
        y = "Count") +
   theme_minimal()
-
 
 # mean
 mean(results_filtered$clutch_size, na.rm = TRUE)
 
 # variance
 var(results_filtered$clutch_size, na.rm = TRUE)
+
+#the mean is much greater than the variance, suggesting that a negative binomial model might be better than the poisson model
+
+
+pois_mod <- glm(clutch_size ~ 1, family = poisson(link = "log"), data = results)
+
+nb_mod <- glm.nb(clutch_size ~ 1, data = results)
+
+AIC(pois_mod, nb_mod)
+#the AIC is way, way lower for the negative binomial model, so this is the better model to use.
+
+
+
+
+
 
 #look at the distribution of female mass
 ggplot(results, aes(x = weight)) +
@@ -97,65 +111,147 @@ ggplot(results, aes(x = egg_mean_1A)) +
   theme_minimal()
 ```
 
+
+
 ```{r}
+#trying negative binomial models
+lm1_nb <- glm.nb(clutch_size ~  larval_treatment, data = results_filtered)
+summary(lm1_nb)
+AIC(lm1_nb)
 
-#full model
+lm2_nb <- glm.nb(clutch_size ~  larval_treatment + weight_mg_centered, data = results_filtered)
+summary(lm2_nb)
+AIC(lm2_nb)
 
-lm1 <-  glmer(clutch_size ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg_centered + (1|maternalID),  family = poisson(link = "log"), data = results_filtered)
+lm3_nb <- glm.nb(clutch_size ~  larval_treatment + pupal_treatment + weight_mg_centered, data = results_filtered)
+summary(lm3_nb)
+AIC(lm3_nb)
 
-summary(lm1)
+lm4_nb <- glmer.nb(clutch_size ~  larval_treatment + pupal_treatment + weight_mg_centered + (1|maternalID), data = results_filtered)
+summary(lm4_nb)
+```
 
 
-#using an identity link means that no data transformation is applied
-#I have centered female weight so that centered weight = 0 corresponds to the mean female weight
+
+```{r}
+#now try zero-inflated negative binomial models 
+lm1_zinb <- zeroinfl(clutch_size ~  larval_treatment, data = results_filtered, dist = "negbin")
+summary(lm1_zinb)
+AIC(lm1_zinb)
+
+lm2_zinb <- zeroinfl(clutch_size ~  larval_treatment + weight_mg_centered, data = results_filtered, dist = "negbin")
+summary(lm2_zinb)
+AIC(lm2_zinb)
+
+lm3_zinb <- zeroinfl(clutch_size ~  larval_treatment + pupal_treatment + weight_mg_centered, data = results_filtered, dist = "negbin")
+summary(lm3_zinb)
+```
+
+
+
+
+```{r}
+#hurdle models
+mod.hurdl_1 <- hurdle(clutch_size ~ larval_treatment, data = results_filtered, dist = "negbin")
+summary(mod.hurdl_1)
+AIC(mod.hurdl_1)
+
+mod.hurdl_2 <- hurdle(clutch_size ~ larval_treatment + weight_mg_centered, data = results_filtered, dist = "negbin")
+summary(mod.hurdl_2)
+AIC(mod.hurdl_2)
+
+mod.hurdl_3 <- hurdle(clutch_size ~ larval_treatment + pupal_treatment + weight_mg_centered, data = results_filtered, dist = "negbin")
+summary(mod.hurdl_3)
+AIC(mod.hurdl_3)
 
 
 ```
 
+```{r}
+#library(lavaan)
+
+path_model <- "
+  clutch_size ~ numerical_larval_treatment
+  clutch_size ~ a*weight_mg
+  weight_mg ~ b*numerical_larval_treatment
+  indirect:=a*b
+"
+
+path_estimate <- sem(path_model, data = results_filtered, se = "bootstrap")
+
+summary(path_estimate, ci = TRUE)
+#ok this comes out with significant indirect effects but it doesn't use the negative binomial distribution, which is important when I have zeros and overdispersed count data
+#another option is piecewise SEM with negative binomial distribution
+
+AIC(path_estimate)
+
+
+library(semPlot)
+
+semPaths(path_estimate,
+         what = "std",          # standardized estimates
+         layout = "tree",
+         edge.label.cex = 1.2,
+         sizeMan = 8,
+         nCharNodes = 0,
+         residuals = FALSE)
+```
 
 ```{r}
+#try piecewise SEM
+#library(piecewiseSEM)
 
+m_model <- lm(weight_mg ~ numerical_larval_treatment, data = results_filtered)
 
+y_model <- glm.nb(clutch_size ~ weight_mg + numerical_larval_treatment, 
+                  data = results_filtered)
 
-lm1 <-  glm(clutch_size ~ numerical_larval_treatment, family = poisson(link = "identity"), data =  results_filtered)
-summary(lm1)
+sem_model <- psem(m_model, y_model)
 
-
-
-lm2 <-  glm(clutch_size ~ numerical_larval_treatment + weight_mg_centered, family = poisson(link = "identity"), data =  results_filtered)
-summary(lm2)
-
-
-lm3 <-  glm(clutch_size ~ weight_mg_centered, family = poisson(link = "identity"), data =  results_filtered)
-summary(lm3)
-
-lm4 <-  glm(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg_centered, family = poisson(link = "identity"), data =  results_filtered)
-summary(lm4)
-
-
-
-lm5 <-  glmer(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg_centered + (1|maternalID), family = poisson(link = "identity"), data =  results_filtered)
-summary(lm5)
-
-
-lm6 <-  glmer(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg_centered + (1|maternalID), family = poisson(link = "log"), data =  results_filtered)
-summary(lm6)
-
-lm7 <-  glmer(clutch_size ~ numerical_larval_treatment * numerical_pupal_treatment + weight_mg_centered + (1|maternalID), family = poisson(link = "log"), data =  results_filtered)
-summary(lm7)
-plot(lm7)
-
-lm7_nb <- glm.nb( clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg_centered, data = results_filtered)
-
-summary(lm7_nb)
-
-
-lm8 <-  lmer(clutch_size ~ numerical_larval_treatment * numerical_pupal_treatment + weight_mg_centered + (1|maternalID), data =  results_filtered)
-summary(lm8)
-
-plot(lm8)
-
+summary(sem_model)
 ```
+
+
+
+
+```{r}
+#looking at the effect of larval treatment on female mass
+results <- results %>%
+  mutate(
+    larval_treatment = factor(larval_treatment, levels = c("ambient","cool","mean","warm","hot"))
+  )
+wm_1 <- lm(weight ~ larval_treatment, data = results)
+summary(wm_1)
+
+AIC(wm_1)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 THOSE THAT HAD AMBIENT LARVAL TREATMENT
@@ -194,12 +290,14 @@ results_ambient_larval <- results_filtered %>%
     pupal_treatment = factor(pupal_treatment, levels = c("cool","mean","warm","hot"))
   )
 
+results_filtered$numerical_pupal_treatment2 <- results_filtered$numerical_pupal_treatment^2
+
 ```
 
 
 
 ```{r}
-lm1_nb <- glmer.nb( clutch_size ~ numerical_pupal_treatment + weight_mg_centered + (1|maternalID), data = results_filtered)
+lm1_nb <- glm.nb( clutch_size ~ numerical_pupal_treatment + numerical_pupal_treatment2, data = results_filtered)
 
 summary(lm1_nb)
 ```

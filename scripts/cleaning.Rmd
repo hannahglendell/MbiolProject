@@ -17,9 +17,13 @@ CLEANING UP CLTUCH SIZE AND MEAN EGG SIZE
 egg_counts <- read.csv(here("data", "raw data", "emergence_egg_counts(Sheet1).csv"))
 
 
+
 #make sure egg counts are stored as numbers
 egg_counts$green_eggs  <- as.numeric(egg_counts$green_eggs)
 egg_counts$orange_eggs <- as.numeric(egg_counts$orange_eggs)
+
+egg_counts <- egg_counts %>%
+  mutate(clutch_size = green_eggs + orange_eggs)
 
 #################################################################################################################################
 #read in the wild moths spreadsheet
@@ -31,7 +35,7 @@ wild_moths$green_eggs <- as.numeric(wild_moths$green_eggs)
 
 #clean up wild egg counts dataset
 wild_moths_clean <- wild_moths %>%
-  select(female_ID, green_eggs, orange_eggs, egg_area) %>%
+  dplyr::select(female_ID, green_eggs, orange_eggs, egg_area) %>%
   mutate(clutch_size = green_eggs + orange_eggs) %>%
   filter(!is.na(clutch_size)) %>%
   mutate(pupal_treatment = "wild", larval_treatment = "wild", sex = "F") %>%
@@ -46,7 +50,6 @@ egg_counts_clean <- egg_counts %>%
   bind_rows(wild_moths_clean) %>%
   filter(sex == "F") %>% #only looking at females
   filter(!startsWith(adultID, "F")) %>% #remove sienna's females
-  mutate(clutch_size = green_eggs + orange_eggs) %>% #clean up clutch size column
   filter(!is.na(clutch_size)) %>% #remove those with NA clutch size
   mutate(larval_treatment = str_extract(adultID, "^[^.]+")) %>% #make larval treatment column
   mutate( #fix these two rows because they were not assigned pupal treatment correctly
@@ -67,6 +70,9 @@ egg_counts_clean <- egg_counts %>%
       WTH = "wild"
     ))
 
+
+zero_eggs <- results %>%
+  filter(clutch_size == 0)
 ```
 
 ```{r}
@@ -83,11 +89,11 @@ egg_size_results$clutch_code <- as.character(egg_size_results$clutch_code)
 results <- egg_counts_clean %>%
   left_join(egg_size_results, by = "clutch_code") %>% #join the egg size results on by clutch code
   mutate(egg_mean_1A = coalesce(egg_mean_1A.x, egg_mean_1A.y)) %>% #egg_mean_1A.x has the egg sizes of the wild moths, egg_mean_1A.y has the egg sizes of the treatment groups. I want to join these two columns together into one
-  select(-egg_mean_1A.x, -egg_mean_1A.y, -treatment_combination, -notes.x, age, -age_at_photo, -uploaded, -dead, -cg, -prev_tray, -new_tray, -egg_mean_blinded, - egg_mean_round_three, -X.y) %>% #remove the columns that I don't need
+  dplyr::select(-egg_mean_1A.x, -egg_mean_1A.y, -treatment_combination, -notes.x, age, -age_at_photo, -uploaded, -dead, -cg, -prev_tray, -new_tray, -egg_mean_blinded, - egg_mean_round_three, -X.y) %>% #remove the columns that I don't need
   mutate(egg_mean_1A = coalesce(egg_mean_1A, replacement_image)) %>% #if I took a replacement image for a clutch, put this measurement into the egg_mean_1A column
-  select(-replacement_image) %>% #now I can get rid of the replacement image column
+  dplyr::select(-replacement_image) %>% #now I can get rid of the replacement image column
   rename(egg_mean_1B = egg_mean_1B_same_set_of_10_eggs, egg_mean_2A = egg_mean_2A_different_set_of_10_eggs) %>% #rename these columns
-  filter(!is.na(egg_mean_1A)) %>% #get rid of any rows that still don't have an egg size
+  #filter(!is.na(egg_mean_1A)) %>% #get rid of any rows that still don't have an egg size. this gets rid of clutches of 0 eggs
   mutate(
     clutch_ID   = if_else(pupal_treatment == "wild", adultID, clutchID),
     clutch_code = if_else(pupal_treatment == "wild", adultID, clutch_code),

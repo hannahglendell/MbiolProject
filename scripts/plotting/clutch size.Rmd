@@ -48,7 +48,7 @@ larval_temp_ambient <- ggplot(
               width = 0.15, size = 2, alpha = 0.8) +
   geom_boxplot(alpha = 0.5, width = 0.7) +
    geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
-  scale_y_continuous(limits = c(0, 400)) +
+  coord_cartesian(ylim = c(0, 400)) +
   scale_x_discrete(
     limits = levels(results$pupal_treatment),
     drop = FALSE
@@ -82,6 +82,9 @@ larval_temp_ambient <- ggplot(
   )
 
 larval_temp_ambient
+
+
+
 ```
 
 
@@ -102,7 +105,7 @@ plots <- lapply(larval_levels, function(lt) {
     scale_x_discrete(
         limits = levels(results$pupal_treatment),
         drop = FALSE) +
-    scale_y_continuous(limits = c(0, 400)) +
+     coord_cartesian(ylim = c(0, 400)) +
     scale_fill_manual(values = temp_cols) +
     scale_color_manual(values = temp_cols) +
     theme_minimal() +
@@ -134,58 +137,30 @@ plots[[2]]
 plots[[3]]
 plots[[4]]
 
+
+
+
 ```
 ```{r}
-larval_levels <- c("cool", "mean", "warm", "hot")
 
-plots <- lapply(larval_levels, function(lt) {
-
-  ggplot(
-    results %>% 
-    filter(larval_treatment == lt),
-    aes(x = pupal_treatment, y = clutch_size)) +
-    geom_jitter(aes(),
+ggplot(results,
+    aes(x = larval_treatment, y = clutch_size, fill = larval_treatment)) +
+    geom_jitter(aes(color = larval_treatment),
                 width = 0.15, size = 2, alpha = 0.8) +
-    geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
-    geom_line(aes(group = maternalID), alpha = 0.3) +
+    geom_boxplot(alpha = 0.5, outlier.shape = NA) +
     scale_x_discrete(
-        limits = levels(results$pupal_treatment),
+        limits = levels(results$larval_treatment),
         drop = FALSE) +
-    scale_y_continuous(limits = c(0, 400)) +
+     coord_cartesian(ylim = c(0, 400)) +
+    scale_fill_manual(values = temp_cols) +
+    scale_color_manual(values = temp_cols) +
     theme_minimal() +
     theme(legend.position = "none") +
     labs(
-      x = "Pupal temperature",
-      y = "Clutch size (number of eggs)",
-      title = paste("Larval temperature:", lt)
+      x = "larval temperature",
+      y = "clutch size",
+      title = paste("")
     )
-})
-
-
-# View first plot
-plots[[1]]
-plots[[2]]
-plots[[3]]
-plots[[4]]
-
-clutch_size_maternal_ID <- results %>%
-  filter(pupal_treatment != "wild") %>%   # keep all except wild
-  ggplot(aes(x = maternalID, y = clutch_size)) +
-  geom_point() +
-  facet_wrap(~maternalID)
-
-clutch_size_maternal_ID
-
-ggsave(
-  here("figures", "clutch size and maternalID.png"),
-  plot = clutch_size_maternal_ID,
-  width = 20,
-  height = 15,
-  dpi = 300
-)
-
-
-
 ```
 
 

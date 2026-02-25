@@ -56,7 +56,6 @@ temp_cols <- c(
 ```
 
 
-
 ```{r}
 larval_levels <- c( "ambient", "cool", "mean", "warm", "hot")
 
@@ -103,9 +102,36 @@ plots[[3]]
 plots[[4]]
 plots[[5]]
 ```
+
 ```{r}
-ggplot(weight_results, aes(x = weight, y = clutch_size)) +
-  geom_point() +
+ggplot(weight_results,
+    aes(x = larval_treatment, y = weight, fill = larval_treatment)) +
+    geom_jitter(aes(color = larval_treatment),
+                width = 0.15, size = 2, alpha = 0.8) +
+    geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+    scale_x_discrete(
+        limits = levels(weight_results$pupal_treatment),
+        drop = FALSE) +
+    scale_y_continuous(limits = c(0.006, 0.05)) +
+    scale_fill_manual(values = temp_cols) +
+    scale_color_manual(values = temp_cols) +
+    theme_minimal() +
+    theme(legend.position = "none") +
+    labs(
+      x = "larval temperature",
+      y = "female mass (g)",
+      title = paste("")
+    )
+```
+
+
+
+
+
+```{r}
+ggplot(weight_results, aes(x = weight, y = clutch_size, fill = larval_treatment)) +
+  geom_point(aes(color = larval_treatment)) +
+  scale_color_manual(values = temp_cols) +
     labs(
       x = "female mass",
       y = "clutch size")
