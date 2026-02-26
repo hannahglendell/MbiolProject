@@ -32,14 +32,9 @@ raw_egg_sizes$larval_treatment <- factor(raw_egg_sizes$larval_treatment,
 
 
 
-#remove ambient, because these need to be modelled separately. also remove larval treatment of cool and mean, because the sample size isn't big enough to model - just not enough clutches.
-#I think I will model the ambient larva treatment separately.
-raw_egg_sizes_filtered <- raw_egg_sizes %>%
-  filter(pupal_treatment != "ambient",
-         larval_treatment != "ambient",
-         larval_treatment != "cool",
-         larval_treatment != "mean",
-         larval_treatment != "wild") %>%
+#looking just at ambient larval temperature.
+egg_sizes_ambient_larval <- raw_egg_sizes %>%
+  filter(larval_treatment == "ambient") %>%
   mutate(numerical_pupal_treatment = case_when(
     pupal_treatment == "cool"  ~ -1.5,
     pupal_treatment == "mean"  ~  0.0,
@@ -56,11 +51,9 @@ raw_egg_sizes_filtered <- raw_egg_sizes %>%
   mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE))
 
 
-raw_egg_sizes_filtered <- raw_egg_sizes_filtered %>%
+egg_sizes_ambient_larval <- egg_sizes_ambient_larval %>%
   mutate(
-    larval_treatment = factor(larval_treatment, levels = c("warm","hot")),
-    pupal_treatment = factor(pupal_treatment, levels = c("cool","mean","warm","hot"))
-  )
+    larval_treatment = factor(larval_treatment, levels = c("ambient")))
 ```
 
 ```{r}
@@ -74,18 +67,84 @@ ggplot(raw_egg_sizes_filtered, aes(x = area)) +
 ```
 
 
+```{r}
 
+lm1 <- lm(area ~ pupal_treatment, data = egg_sizes_ambient_larval)
+summary(lm1)
+AIC(lm1)
+#pupal treatment does affect egg size, compared to ambient
+
+lm2 <- lm(area ~ pupal_treatment + weight_mg_centered, data = egg_sizes_ambient_larval)
+summary(lm2)
+AIC(lm2)
+#so weight does not affect egg size - remove from model
+
+lm3 <- lmer(area ~ pupal_treatment + (1|clutch_ID), data = egg_sizes_ambient_larval )
+summary(lm3)
+AIC(lm3)
+#this is alower AIC so including clutch_ID makes the model better
+
+lm4 <- lmer(area ~ pupal_treatment + (1|clutch_ID) + (1|maternalID), data = egg_sizes_ambient_larval )
+summary(lm4)
+AIC(lm4)
+
+confint(lm4)
+#this has a lower AIC again so including maternalID as a random effect makes the model better.
+```
 
 ```{r}
-#this is what I am aiming for in the end
+library(emmeans)
 
-lm1 <- lmer(area ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg_centered + (1|clutchID) + (1|maternalID), data = raw_egg_sizes_filtered)
+#estimates marginal means for the pupal treatments, using lm6
+emm <- emmeans(lm4, ~ pupal_treatment)
+emm
 
+#pairwise comparisons
+pairs(emm)
+
+#significant difference between ambient-mean, ambient-warm, and ambient-hot.
+```
+WARM AND HOT LARVAL TREATMENT
+
+```{r}
+#looking just at ambient larval temperature.
+egg_sizes_warmhot_larval <- raw_egg_sizes %>%
+  filter(larval_treatment %in% c("warm", "hot")) %>%
+  mutate(weight_mg = weight * 1000) %>%
+  mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE))
+
+
+egg_sizes_warmhot_larval <- egg_sizes_warmhot_larval %>%
+  mutate(
+    larval_treatment = factor(larval_treatment, levels = c("warm", "hot")))
+```
+
+```{r}
+
+lm1 <- lm(area ~larval_treatment, data = egg_sizes_warmhot_larval )
 summary(lm1)
+AIC(lm1)
+#larval treatment not significant
 
-confint(lm1)
+lm2 <- lm(area ~ pupal_treatment, data = egg_sizes_warmhot_larval )
+summary(lm2)
+AIC(lm2)
+#pupal treatment significant
 
-icc(lm1)
+lm3 <- lmer(area ~ pupal_treatment + (1|clutch_ID) + (1|maternalID), data = egg_sizes_warmhot_larval )
+summary(lm3)
+AIC(lm3)
 
+
+```
+```{r}
+#estimates marginal means for the pupal treatments, using lm6
+emm <- emmeans(lm3, ~ pupal_treatment)
+emm
+
+#pairwise comparisons
+pairs(emm)
+
+#significant difference between ambient-mean, ambient-warm, and ambient-hot.
 ```
 

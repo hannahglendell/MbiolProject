@@ -11,6 +11,8 @@ library(lme4)
 library(performance)
 library(MASS)
 library(pscl)
+library(piecewiseSEM)
+library(semPlot)
 ```
 
 ```{r}
@@ -59,7 +61,7 @@ results_filtered <- results_filtered %>%
   )
 
 #how many eggs were counted in total
-sum(results$clutch_size)
+sum(results$clutch_size) 
 
 
 ```
@@ -209,6 +211,9 @@ y_model <- glm.nb(clutch_size ~ weight_mg + numerical_larval_treatment,
 sem_model <- psem(m_model, y_model)
 
 summary(sem_model)
+
+plot(sem_model, show = "unstd", digits = 2)
+
 ```
 
 
@@ -218,9 +223,13 @@ summary(sem_model)
 #looking at the effect of larval treatment on female mass
 results <- results %>%
   mutate(
-    larval_treatment = factor(larval_treatment, levels = c("ambient","cool","mean","warm","hot"))
-  )
-wm_1 <- lm(weight ~ larval_treatment, data = results)
+    larval_treatment = factor(larval_treatment, levels = c("cool","mean","warm","hot"))
+  ) %>%
+  mutate(weight_mg = weight * 1000)
+
+
+
+wm_1 <- lm(weight_mg ~ larval_treatment, data = results)
 summary(wm_1)
 
 AIC(wm_1)
