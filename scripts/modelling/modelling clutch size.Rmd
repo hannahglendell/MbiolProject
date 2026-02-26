@@ -203,6 +203,13 @@ semPaths(path_estimate,
 #try piecewise SEM
 #library(piecewiseSEM)
 
+#remove zeros from the dataset because I can't do a ZINB or a hurdle model in PSEM
+results_filtered <- results_filtered %>%
+ filter(clutch_size != 0) %>%
+  mutate(numerical_larval_treatment = case_when(
+    larval_treatment == "warm"  ~  1.5, #recode the numerical larval treatments
+    larval_treatment == "hot"   ~  2.5))
+
 m_model <- lm(weight_mg ~ numerical_larval_treatment, data = results_filtered)
 
 y_model <- glm.nb(clutch_size ~ weight_mg + numerical_larval_treatment, 
@@ -213,6 +220,21 @@ sem_model <- psem(m_model, y_model)
 summary(sem_model)
 
 plot(sem_model, show = "unstd", digits = 2)
+
+
+warm_larval <- results_filtered %>%
+  filter(larval_treatment == "warm")
+
+mean(warm_larval$weight_mg)
+#23.61
+
+hot_larval <- results_filtered %>%
+  filter(larval_treatment == "hot")
+
+mean(hot_larval$weight_mg)
+#30.44
+
+30.44 - 23.62 
 
 ```
 
