@@ -44,7 +44,7 @@ results_filtered <- results %>%
     pupal_treatment == "warm"  ~  1.5,
     pupal_treatment == "hot"   ~  2.5,
     TRUE ~ NA_real_
-  )) %>%
+  )) %>% 
   mutate(numerical_larval_treatment = case_when(
     larval_treatment == "warm"  ~  1.5,
     larval_treatment == "hot"   ~  2.5,

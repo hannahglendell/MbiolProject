@@ -58,7 +58,7 @@ egg_sizes_ambient_larval <- egg_sizes_ambient_larval %>%
 
 ```{r}
 #look at the distributions of egg size
-ggplot(raw_egg_sizes_filtered, aes(x = area)) +
+ggplot(egg_sizes_ambient_larval, aes(x = area)) +
   geom_histogram(binwidth = 0.01) +  # change this value to control bin width +
   labs(title = "Distribution of Egg Sizes",
        x = "Egg Area",
