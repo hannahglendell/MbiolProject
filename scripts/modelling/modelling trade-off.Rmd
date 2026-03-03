@@ -8,6 +8,8 @@ library(lme4)
 library(purrr)
 library(broom)
 library(MASS)
+library(here)
+library(dplyr)
 ```
 
 
@@ -28,32 +30,32 @@ results <- results %>%
     mutate(weight_mg = weight * 1000)  %>%
   mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE))
 
-
+ 
 ```
 
 ```{r}
 lm1 <- lm(egg_mean_1A ~ clutch_size, data = results)
 summary(lm1)
+AIC(lm1)
 
 lm2 <- lm(egg_mean_1A ~ clutch_size + larval_treatment, data = results)
 summary(lm2)
+AIC(lm2)
 
 lm3 <- lm(egg_mean_1A ~ clutch_size + pupal_treatment, data = results)
 summary(lm3)
+AIC(lm3)
 
 lm4 <- lm(egg_mean_1A ~ clutch_size + pupal_treatment + larval_treatment, data = results)
 summary(lm4)
+AIC(lm4)
 
-lm5 <- lm(clutch_size ~ egg_mean_1A + pupal_treatment + larval_treatment + weight_mg, data = results)
+lm5 <- lmer(egg_mean_1A ~ clutch_size + pupal_treatment + larval_treatment + (1|maternalID), data = results)
 summary(lm5)
+AIC(lm5)
 
-lm1_nb <- glm.nb(clutch_size ~  egg_mean_1A, data = results)
-summary(lm1_nb)
 
-lm2_nb <- glm.nb(clutch_size ~ egg_mean_1A * larval_treatment * pupal_treatment,
-       data = results)
 
-summary(lm2_nb)
 
 ```
 
