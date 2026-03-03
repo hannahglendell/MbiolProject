@@ -206,42 +206,81 @@ semPaths(path_estimate,
 #remove zeros from the dataset because I can't do a ZINB or a hurdle model in PSEM
 results_filtered <- results_filtered %>%
  filter(clutch_size != 0) %>%
+  filter(!is.na(egg_mean_1A)) %>%
   mutate(numerical_larval_treatment = case_when(
     larval_treatment == "warm"  ~  1.5, #recode the numerical larval treatments
     larval_treatment == "hot"   ~  2.5))
 
-m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment, data = results_filtered)
 
-y_model <- glm.nb(clutch_size ~ weight_mg + numerical_larval_treatment + numerical_pupal_treatment, data = results_filtered)
+m_model <- lm(weight_mg ~ numerical_larval_treatment, data = results_filtered)
 
-x_model <- lm(egg_mean_1A ~ clutch_size + weight_mg + numerical_larval_treatment + numerical_pupal_treatment, data = results_filtered)
-
-sem_model <- psem(m_model, y_model, x_model)
-
-summary(sem_model)
-
-plot(sem_model, show = "unstd", digits = 2)
+y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + weight_mg,  data = results_filtered)
 
 
-warm_larval <- results_filtered %>%
-  filter(larval_treatment == "warm")
 
-mean(warm_larval$weight_mg)
-#23.61
+sem_model <- psem(m_model, y_model)
 
-hot_larval <- results_filtered %>%
-  filter(larval_treatment == "hot")
 
-mean(hot_larval$weight_mg)
-#30.44
 
-30.44 - 23.62 
+summary(sem_model, standardize = "scale", direction = c("weight_mg _> clutch_size"))
+
+plot(sem_model, show = "std", digits = 2)
+
  
 ```
 
 
 
 
+
+
+
+
+```{r}
+m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment, data = results_filtered)
+
+y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg,  data = results_filtered)
+
+x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + clutch_size + (1|maternalID), data = results_filtered)
+
+sem_model <- psem(m_model, y_model, x_model)
+
+
+
+summary(sem_model, standardize = "scale")
+
+plot(sem_model, show = "std", digits = 2)
+```
+
+
+
+
+```{r}
+
+# Models
+m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment,
+              data = results_filtered)
+
+y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg,
+                  data = results_filtered)
+
+x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + clutch_size +
+                  (1|maternalID), data = results_filtered)
+
+# SEM with correlated error between clutch size and egg size
+sem_model <- psem(
+  m_model,
+  y_model,
+  x_model,
+  clutch_size %~~% egg_mean_1A   # this adds the correlated residual
+)
+
+# Summary with standardized coefficients
+summary(sem_model, standardize = "scale", conserve = TRUE)
+
+# Plot standardized SEM
+plot(sem_model, show = "std", digits = 2)
+```
 
 
 ```{r}

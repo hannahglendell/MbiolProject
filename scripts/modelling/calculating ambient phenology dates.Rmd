@@ -70,8 +70,8 @@ ggplot(ambient_pupal_treatment, aes(x = emergence_date)) +
 #calculate the median pupation date
 median(ambient_pupal_treatment$emergence_date, na.rm = TRUE)
 
-#the median pupation date of all larval treatments but ambient pupal treatment was "2025-12-01"
-#the median pupation date of just ambient-ambient was "2025-11-29"
+#the median emergence date of all larval treatments but ambient pupal treatment was "2025-12-01"
+#the median emergence date of just ambient-ambient was "2025-11-29"
 ```
 
 

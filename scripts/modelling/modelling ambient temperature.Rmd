@@ -1,0 +1,184 @@
+---
+title: "modelling ambient temperature"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(here)
+library(car)
+```
+
+AMBIENT TEMPERATURE DATA
+
+```{r}
+ambient_temperatures <- read.csv(here("data", "clean data", "ambient temperatures.csv"))
+
+```
+
+```{r}
+#calculate daily mean temperature
+ambient_daily_means <- ambient_temperatures %>%
+  mutate(
+    date = as.Date(datetime),
+    temperature = as.numeric(temperature)
+  ) %>%
+  group_by(date) %>%
+  summarise(
+    ambient_mean_temperature = mean(temperature, na.rm = TRUE)
+  )
+
+```
+
+INCUBATOR TREATMENTS DATA
+```{r}
+#now i need to calculate the daily mean temperature for the temperature treatments
+incubator_treatments <- read.csv(here("data", "raw data", "mbiols_daily_temperature_data.csv"))
+```
+
+
+```{r}
+#to make sure dates are stored as dates, and temperatures as numbers
+incubator_treatments <- incubator_treatments %>%
+  mutate(
+    date_1   = as.Date(date_1, format = "%d/%m/%Y"),
+    date_end = as.Date(date_end, format = "%d/%m/%Y"),
+    `plus2.5`    = as.numeric(`plus2.5`),
+    `plus1.5`    = as.numeric(`plus1.5`),
+    `actual.mean` = as.numeric(`actual.mean`),
+    `minus1.5`   = as.numeric(`minus1.5`),
+    `minus2.5`   = as.numeric(`minus2.5`)
+  )
+
+```
+
+```{r}
+#calculate the daily mean temperature for each treatment
+incubator_daily_means <- incubator_treatments %>%
+  group_by(date_1, date_end) %>%
+  summarise(
+    plus2.5_mean  = mean(`plus2.5`, na.rm = TRUE),
+    plus1.5_mean  = mean(`plus1.5`, na.rm = TRUE),
+    actual_mean   = mean(`actual.mean`, na.rm = TRUE),
+    minus1.5_mean = mean(`minus1.5`, na.rm = TRUE),
+    .groups = "drop") %>%
+  pivot_longer(
+    cols = c(date_1, date_end),
+    names_to = "date_type",
+    values_to = "date")
+
+```
+
+```{r}
+daily_means <- left_join(incubator_daily_means, ambient_daily_means, by = "date")
+
+#dataset for period of resource acquisition - using median halfhatch date and median pupation date
+acquisition_daily_means <- daily_means %>%
+  filter(date >= as.Date("2025-04-14") & date <= as.Date("2025-05-16"))
+
+#dataset for period of resource allocation. here I am assuming that adult winter moths live around one month after emergence - need to check this with Rona
+allocation_daily_means <- daily_means %>%
+  filter(date >= as.Date("2025-05-16") & date <= as.Date("2025-12-29"))
+
+```
+
+RESOURCE ACQUISITION PERIOD
+```{r}
+#now to a t-test to test whether the ambient is different from the incubator treatments, during resource acquisition
+#ambient and mean
+t.test(acquisition_daily_means$ambient_mean_temperature, acquisition_daily_means$actual_mean, paired = TRUE)
+
+#ambient and warm
+t.test(acquisition_daily_means$ambient_mean_temperature, acquisition_daily_means$plus1.5_mean, paired = TRUE)
+
+#ambient and hot
+t.test(acquisition_daily_means$ambient_mean_temperature, acquisition_daily_means$plus2.5_mean, paired = TRUE)
+
+#ambient and cool
+t.test(acquisition_daily_means$ambient_mean_temperature, acquisition_daily_means$minus1.5_mean, paired = TRUE)
+
+var(acquisition_daily_means$ambient_mean_temperature)
+
+var(acquisition_daily_means$plus1.5_mean)
+
+
+variance_summary <- acquisition_daily_means %>%
+  summarise(
+    ambient_var  = var(ambient_mean_temperature, na.rm = TRUE),
+    minus1.5_var = var(minus1.5_mean, na.rm = TRUE),
+    actual_var   = var(actual_mean, na.rm = TRUE),
+    plus1.5_var  = var(plus1.5_mean, na.rm = TRUE),
+    plus2.5_var  = var(plus2.5_mean, na.rm = TRUE)
+  )
+
+variance_summary
+```
+```{r}
+
+acquisition_daily_means_long <- acquisition_daily_means %>%
+  pivot_longer(
+    cols = c(plus2.5_mean,
+             plus1.5_mean,
+             actual_mean,
+             minus1.5_mean,
+             ambient_mean_temperature),
+    names_to = "treatment",
+    values_to = "temp"
+  )
+
+#now do a levene's test to test for variance
+leveneTest(temp ~ treatment,
+           data = acquisition_daily_means_long %>%
+             filter(treatment %in% c("ambient_mean_temperature",
+                                     "actual_mean")))
+
+
+```
+RESOURCE ALLOCATION PERIOD
+```{r}
+#now to a t-test to test whether the ambient is different from the incubator treatments, during resource allocation
+#ambient and mean
+t.test(allocation_daily_means$ambient_mean_temperature, allocation_daily_means$actual_mean, paired = TRUE)
+
+#ambient and warm
+t.test(allocation_daily_means$ambient_mean_temperature, allocation_daily_means$plus1.5_mean, paired = TRUE)
+
+#ambient and hot
+t.test(allocation_daily_means$ambient_mean_temperature, allocation_daily_means$plus2.5_mean, paired = TRUE)
+
+#ambient and cool
+t.test(allocation_daily_means$ambient_mean_temperature, allocation_daily_means$minus1.5_mean, paired = TRUE)
+
+
+
+variance_summary <- allocation_daily_means %>%
+  summarise(
+    ambient_var  = var(ambient_mean_temperature, na.rm = TRUE),
+    minus1.5_var = var(minus1.5_mean, na.rm = TRUE),
+    actual_var   = var(actual_mean, na.rm = TRUE),
+    plus1.5_var  = var(plus1.5_mean, na.rm = TRUE),
+    plus2.5_var  = var(plus2.5_mean, na.rm = TRUE)
+  )
+
+variance_summary
+```
+```{r}
+allocation_daily_means_long <- allocation_daily_means %>%
+  pivot_longer(
+    cols = c(plus2.5_mean,
+             plus1.5_mean,
+             actual_mean,
+             minus1.5_mean,
+             ambient_mean_temperature),
+    names_to = "treatment",
+    values_to = "temp"
+  )
+
+#now do a levene's test to test for variance
+leveneTest(temp ~ treatment,
+           data = allocation_daily_means_long %>%
+             filter(treatment %in% c("ambient_mean_temperature",
+                                     "actual_mean")))
+```
+
