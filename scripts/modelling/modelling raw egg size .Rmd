@@ -12,7 +12,7 @@ library(lme4)
 ```
 working on the raw egg size measurements for each individual egg
 
-
+AMBIENT LARVAL TEMPERATURE
 ```{r}
 raw_egg_sizes <- read.csv(here("data", "clean data", "raw egg sizes.csv"))
 

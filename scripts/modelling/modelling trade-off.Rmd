@@ -12,7 +12,7 @@ library(here)
 library(dplyr)
 ```
 
-
+WARM AND HOT LARVAL TEMP
 ```{r}
 results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
 
@@ -37,22 +37,27 @@ results <- results %>%
 lm1 <- lm(egg_mean_1A ~ clutch_size, data = results)
 summary(lm1)
 AIC(lm1)
+#AIC = -1169
 
 lm2 <- lm(egg_mean_1A ~ clutch_size + larval_treatment, data = results)
 summary(lm2)
 AIC(lm2)
+#AIC = -1167
 
 lm3 <- lm(egg_mean_1A ~ clutch_size + pupal_treatment, data = results)
 summary(lm3)
 AIC(lm3)
+#AIC = -965
 
 lm4 <- lm(egg_mean_1A ~ clutch_size + pupal_treatment + larval_treatment, data = results)
 summary(lm4)
 AIC(lm4)
+#AIC = -964
 
 lm5 <- lmer(egg_mean_1A ~ clutch_size + pupal_treatment + larval_treatment + (1|maternalID), data = results)
 summary(lm5)
 AIC(lm5)
+#AIC = -914
 
 
 
@@ -60,15 +65,40 @@ AIC(lm5)
 ```
 
 ```{r}
-models <- results %>%
-  group_by(larval_treatment, pupal_treatment) %>%
-  nest() %>%
-  mutate(
-    model = map(data, ~ glm.nb(clutch_size ~ egg_mean_1A, data = .x)),
-    tidy  = map(model, tidy)
-  )
+warm_cool <-
+  results %>%
+  filter(treatment_combination == "warm_cool")
 
-model_results <- models %>%
-  unnest(tidy)
+lm1 <- lm(egg_mean_1A ~ clutch_size, data = warm_cool)
+summary(lm1)
+AIC(lm1)
+
+
+warm_mean <-
+  results %>%
+  filter(treatment_combination == "warm_mean")
+
+lm2 <- lm(egg_mean_1A ~ clutch_size, data = warm_mean)
+summary(lm2)
+AIC(lm2)
+
+
+warm_warm <-
+  results %>%
+  filter(treatment_combination == "warm_warm")
+
+lm3 <- lm(egg_mean_1A ~ clutch_size, data = warm_warm)
+summary(lm3)
+AIC(lm3)
+
+
+warm_hot <-
+  results %>%
+  filter(treatment_combination == "warm_hot")
+
+lm4 <- lm(egg_mean_1A ~ clutch_size, data = warm_hot)
+summary(lm4)
+AIC(lm4)
 ```
 
+AMBIENT LARVAL TEMP
