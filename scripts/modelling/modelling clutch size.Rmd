@@ -179,7 +179,36 @@ mod.hurdl_5 <- glmmTMB(clutch_size ~  weight_mg_centered, ziformula = ~ weight_m
 summary(mod.hurdl_5)
 AIC(mod.hurdl_5)
 
+
 ```
+
+```{r}
+#model diagnostics for the best model (mod.hurdl_5)
+library(DHARMa)
+
+# simulate residuals
+sim_res <- simulateResiduals(mod.hurdl_5)
+
+# basic diagnostic plots
+plot(sim_res)
+
+testDispersion(sim_res)
+
+testZeroInflation(sim_res)
+
+
+#plot observed vs predicted
+pred <- predict(mod.hurdl_5, type = "response")
+
+plot(pred, results_filtered$clutch_size)
+abline(0, 1, col = "red")
+```
+
+
+
+
+
+
 ```{r}
 #looking at the effect of larval treatment on female mass
 results <- results %>%

@@ -142,6 +142,7 @@ RESOURCE ALLOCATION PERIOD
 #ambient and mean
 t.test(allocation_daily_means$ambient_mean_temperature, allocation_daily_means$actual_mean, paired = TRUE)
 
+
 #ambient and warm
 t.test(allocation_daily_means$ambient_mean_temperature, allocation_daily_means$plus1.5_mean, paired = TRUE)
 
