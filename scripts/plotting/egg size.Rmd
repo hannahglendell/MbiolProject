@@ -156,7 +156,7 @@ ggplot(repeatability_data, aes(x = egg_mean_1A, y = egg_mean_1B)) +
            size = 5) +
   labs( x = "photograph 1", y = "photograph 2")
 #get the r-squared
-cor(repeatability_data$egg_mean_1A, repeatability_data$egg_mean_1B, use = "complete.obs")^2
+cor(repeatability_data$egg_mean_1A, repeatability_data$egg_mean_1B, use = "complete.obs")
 
 
 #compare the mean of one set of 10 eggs, and then a different set of 10 eggs
@@ -171,7 +171,7 @@ ggplot(repeatability_data, aes(x = egg_mean_1A, y = egg_mean_2A)) +
            size = 5) +
   labs( x = "first set of 10 eggs", y = "different set of 10 eggs")
 #get the r-squared
-cor(repeatability_data$egg_mean_1A, repeatability_data$egg_mean_2A, use = "complete.obs")^2
+cor(repeatability_data$egg_mean_1A, repeatability_data$egg_mean_2A, use = "complete.obs")
 
 ```
 

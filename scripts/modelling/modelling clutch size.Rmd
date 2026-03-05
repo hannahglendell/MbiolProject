@@ -71,6 +71,12 @@ results_filtered <- results_filtered %>%
 #how many eggs were counted in total
 sum(results$clutch_size) 
 
+#results <- results %>%
+  #filter(clutch_size != 0)
+
+mean(results$clutch_size)
+
+sd(results$clutch_size)
 
 ```
 
@@ -271,14 +277,10 @@ summary(mod.hurdl_2)
 AIC(mod.hurdl_2)
 #AIC = 1099
 
-mod.hurdl_3 <- glmmTMB(clutch_size ~ weight_mg_centered + (1 | maternalID), ziformula = ~ weight_mg_centered, family = truncated_nbinom2, data = results_filtered_ambient)
+
+mod.hurdl_3 <- glmmTMB(clutch_size ~ weight_mg_centered + (1 | maternalID), ziformula = ~ weight_mg_centered + (1|maternalID), family = truncated_nbinom2, data = results_filtered_ambient)
 summary(mod.hurdl_3)
 AIC(mod.hurdl_3)
-#AIC = 1101
-
-mod.hurdl_4 <- glmmTMB(clutch_size ~ weight_mg_centered + (1 | maternalID), ziformula = ~ weight_mg_centered + (1|maternalID), family = truncated_nbinom2, data = results_filtered_ambient)
-summary(mod.hurdl_4)
-AIC(mod.hurdl_4)
 #AIC = 1103
 
 ```
@@ -338,12 +340,12 @@ y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + weight_mg,  data = 
 
 sem_model <- psem(m_model, y_model)
 
-
+summary(sem_model)
 
 summary(sem_model, standardize = "scale", direction = c("weight_mg _> clutch_size"))
 
 
-plot(sem_model, show = "std", digits = 2)
+plot(sem_model, show = "unstd", digits = 2)
 
  
 ```
@@ -356,6 +358,7 @@ plot(sem_model, show = "std", digits = 2)
 
 
 ```{r}
+#model without correlated error between egg size and number
 m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment, data = results_filtered)
 
 y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg,  data = results_filtered)
@@ -375,6 +378,7 @@ plot(sem_model, show = "std", digits = 2)
 
 
 ```{r}
+#unstandardised model
 
 # Models
 m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment,
@@ -383,8 +387,7 @@ m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment
 y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg,
                   data = results_filtered)
 
-x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + clutch_size +
-                  (1|maternalID), data = results_filtered)
+x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + clutch_size + (1|maternalID), data = results_filtered)
 
 # SEM with correlated error between clutch size and egg size
 sem_model <- psem(
@@ -395,90 +398,64 @@ sem_model <- psem(
 )
 
 # Summary with standardized coefficients
-summary(sem_model, standardize = "scale", conserve = TRUE) #dispalys coefficients in z-scores
+summary(sem_model) #dispalys coefficients in z-scores
+
+# Plot standardized SEM
+plot(sem_model, show = "unstd", digits = 2)
+```
+
+
+```{r}
+#standardised model
+# Models
+m_model <- lm(weight_mg_z ~ numerical_larval_treatment + numerical_pupal_treatment,
+              data = results_filtered)
+
+y_model <- lm(clutch_size_z ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg_z,
+                  data = results_filtered)
+
+x_model <- lmer(egg_mean_1A_z ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg_z + clutch_size_z + (1|maternalID), data = results_filtered)
+
+# SEM with correlated error between clutch size and egg size
+sem_model <- psem(
+  m_model,
+  y_model,
+  x_model,
+  clutch_size %~~% egg_mean_1A   # this adds the correlated residual
+)
+
+# Summary with standardized coefficients
+summary(sem_model,  conserve = TRUE) #dispalys coefficients in z-scores
 
 # Plot standardized SEM
 plot(sem_model, show = "std", digits = 2)
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-THOSE THAT HAD AMBIENT LARVAL TREATMENT
-```{r}
-#going to try modelling those that had ambient larval temp
-
-results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
-
-#make maternal ID a factor
-results$maternalID <- as.factor(results$maternalID)
-
-#make a treatment combination column
-results <- results %>%
-  mutate(treatment_combination = paste(larval_treatment, pupal_treatment, sep = "_"))  %>%
-  mutate()
-
-
-#remove ambient, because these need to be modelled separately. also remove larval treatment of cool and mean, because the sample size isn't big enough to model - just not enough clutches.
-#I think I will model the ambient larva treatment separately.
-results_ambient_larval <- results %>%
-  mutate(numerical_pupal_treatment = case_when(
-    pupal_treatment == "cool"  ~ -1.5,
-    pupal_treatment == "mean"  ~  0.0,
-    pupal_treatment == "warm"  ~  1.5,
-    pupal_treatment == "hot"   ~  2.5,
-    TRUE ~ NA_real_ )) %>%
-    filter(
-         larval_treatment == "ambient",
-         pupal_treatment != "ambient") %>%
-  mutate(weight_mg = weight * 1000) %>%
-  mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE))
-
-
-results_ambient_larval <- results_filtered %>%
-  mutate(
-    pupal_treatment = factor(pupal_treatment, levels = c("cool","mean","warm","hot"))
-  )
-
-results_filtered$numerical_pupal_treatment2 <- results_filtered$numerical_pupal_treatment^2
 
 ```
 
 
 
-```{r}
-lm1_nb <- glm.nb( clutch_size ~ numerical_pupal_treatment + numerical_pupal_treatment2, data = results_filtered)
 
-summary(lm1_nb)
-```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

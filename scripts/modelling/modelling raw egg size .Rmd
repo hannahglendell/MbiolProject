@@ -54,6 +54,9 @@ egg_sizes_ambient_larval <- raw_egg_sizes %>%
 egg_sizes_ambient_larval <- egg_sizes_ambient_larval %>%
   mutate(
     larval_treatment = factor(larval_treatment, levels = c("ambient")))
+
+summary(raw_egg_sizes$egg_mean_1A)
+sd(raw_egg_sizes$egg_mean_1A)
 ```
 
 ```{r}
