@@ -101,4 +101,38 @@ summary(lm4)
 AIC(lm4)
 ```
 
-AMBIENT LARVAL TEMP
+Wild moths
+
+```{r}
+results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
+
+results_wild <- results %>%
+  filter(pupal_treatment == "wild")
+
+lm1 <- lm(egg_mean_1A ~ clutch_size, data = results_wild)
+summary(lm1)
+
+
+```
+ambient larval temp (excluding ambient-ambient)
+
+```{r}
+results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
+
+results_ambient <- results %>%
+  filter(larval_treatment == "ambient") %>%
+  filter(pupal_treatment != "ambient")
+
+lm1 <- lm(egg_mean_1A ~ clutch_size, data = results_ambient)
+summary(lm1)
+AIC(lm1)
+
+lm2 <- lm(egg_mean_1A ~ clutch_size + pupal_treatment, data = results_ambient)
+summary(lm2)
+AIC(lm2)
+
+lm3 <- lm(egg_mean_1A ~ clutch_size * pupal_treatment, data = results_ambient)
+summary(lm3)
+AIC(lm3)
+```
+

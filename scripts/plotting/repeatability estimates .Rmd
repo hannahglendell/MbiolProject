@@ -2,6 +2,12 @@
 title: "repeatability individual eggs"
 output: html_document
 ---
+```{r}
+library(irr)
+library(here)
+library(dplyr)
+```
+
 
 ```{r}
 egg_spreadsheet <- read.csv(here("data", "raw data", "eggs spreadsheet.csv"))
@@ -12,7 +18,7 @@ repeatability_data <- egg_spreadsheet %>%
   filter(!is.na(size_02))
   
 
-
+ 
 #look at the repeatability of two different photographs of the same eggs
 ggplot(repeatability_data, aes(x = size_01, y = size_02)) +
   geom_point() +
@@ -26,4 +32,26 @@ cor(repeatability_data$size_01, repeatability_data$size_02, use = "complete.obs"
 
 
 ```
+
+```{r}
+icc(repeatability_data[, c(5,7)], model="twoway", type="agreement", unit="single")
+```
+```{r}
+results <- read.csv(here("data", "clean data", "results.csv"))
+
+repeatability_results <- results %>%
+  filter(!is.na(egg_mean_1B)) %>%
+  filter(clutch_code != "8425") %>%
+  filter(clutch_code != "7800")
+
+#repeatability between two photographs of the same set of ten eggs
+icc(repeatability_results[, c(16,19)], model="twoway", type="agreement", unit="single")
+
+
+
+#repeatability between two photographs of different sets of 10 eggs
+icc(repeatability_results[, c(17,19)], model="twoway", type="agreement", unit="single")
+```
+
+
 

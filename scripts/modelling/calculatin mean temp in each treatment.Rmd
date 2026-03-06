@@ -1,0 +1,25 @@
+---
+title: "calculatin mean temp in each treatment"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(here)
+library(car)
+```
+
+```{r}
+ambient_temperatures <- read.csv(here("data", "clean data", "ambient temperatures.csv"))
+
+incubator_treatments <- read.csv(here("data", "raw data", "mbiols_daily_temperature_data.csv"))
+
+incubator_treatments <- incubator_treatments %>%
+  group_by(date_1, date_end) %>%
+   pivot_longer(
+    cols = c(date_1, date_end),
+    names_to = "date_type",
+    values_to = "date")
+```
+
