@@ -1,0 +1,61 @@
+---
+title: "reproductive investment"
+output: html_document
+---
+
+```{r}
+results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
+```
+
+```{r}
+results <- results %>%
+  mutate(reproductive_investment = clutch_size*egg_mean_1A,
+         reproductive_investment = if_else(is.na(reproductive_investment), 0, reproductive_investment))
+
+hist(results$reproductive_investment)
+```
+
+```{r}
+#convert the pupal temperatures to factors so they plot in the correct order
+results$pupal_treatment <- factor(results$pupal_treatment,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
+
+#convert the larval  temperatures to factors so the plot in the correct order
+results$larval_treatment <- factor(results$larval_treatment,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
+
+#assign colours to the temperatures                           
+temp_cols <- c(
+  ambient = "#484A4C",
+  cool    = "#76C0CC",
+  mean    = "#F9CA0F",
+  warm    = "#E87A36",
+  hot     = "#AF0808")
+
+
+plot <- ggplot(
+  results,
+  aes(x = larval_treatment, y = reproductive_investment, fill = larval_treatment)
+) +
+  geom_jitter(aes(color = larval_treatment),
+              width = 0.15, size = 2, alpha = 0.8) +
+  geom_boxplot(alpha = 0.5, width = 0.7) +
+   geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
+  coord_cartesian(ylim = c(0, 100)) +
+  scale_x_discrete(
+    limits = levels(results$larval_treatment),
+    drop = FALSE
+  ) +
+  scale_fill_manual(values = temp_cols) +
+  scale_color_manual(values = temp_cols) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(
+    x = "larval temperature",
+    y = "reproductive investment",
+    title = "")
+plot 
+
+
+```
+

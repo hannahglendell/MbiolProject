@@ -18,6 +18,7 @@ library(dplyr)
 library(glmmTMB)
 ```
 
+WARM OR HOT LARVAL TREAMENT
 ```{r}
 
 results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
@@ -36,11 +37,8 @@ table(results$treatment_combination)
 #remove ambient, because these need to be modelled separately. also remove larval treatment of cool and mean, because the sample size isn't big enough to model - just not enough clutches.
 #I think I will model the ambient larva treatment separately.
 results_filtered <- results %>%
-  filter(pupal_treatment != "ambient",
-         larval_treatment != "ambient",
-         larval_treatment != "cool",
-        larval_treatment != "mean",
-         larval_treatment != "wild") %>%
+  filter(
+    larval_treatment %in% c("warm", "hot")) %>%
   mutate(numerical_pupal_treatment = case_when(
     pupal_treatment == "cool"  ~ -1.5,
     pupal_treatment == "mean"  ~  0.0,
@@ -65,7 +63,7 @@ results_filtered <- results %>%
 results_filtered <- results_filtered %>%
   mutate(
     larval_treatment = factor(larval_treatment, levels = c("warm","hot")),
-    pupal_treatment = factor(pupal_treatment, levels = c("cool","mean","warm","hot"))
+    pupal_treatment = factor(pupal_treatment, levels = c("ambient", "cool","mean","warm","hot"))
   )
 
 #how many eggs were counted in total
@@ -168,22 +166,28 @@ summary(lm3_zinb)
 mod.hurdl_1 <- glmmTMB(clutch_size ~ larval_treatment, ziformula = ~ larval_treatment, family = truncated_nbinom2, data = results_filtered)
 summary(mod.hurdl_1)
 AIC(mod.hurdl_1)
+#2474
 
 mod.hurdl_2 <- glmmTMB(clutch_size ~ larval_treatment + weight_mg_centered, ziformula = ~ larval_treatment + weight_mg_centered, family = truncated_nbinom2, data = results_filtered)
 summary(mod.hurdl_2)
 AIC(mod.hurdl_2)
+#2466
 
 mod.hurdl_3 <- glmmTMB(clutch_size ~ larval_treatment + weight_mg_centered + pupal_treatment, ziformula = ~ larval_treatment + weight_mg_centered + pupal_treatment, family = truncated_nbinom2, data = results_filtered)
 summary(mod.hurdl_3)
 AIC(mod.hurdl_3)
+#2478
+
 
 mod.hurdl_4 <- glmmTMB(clutch_size ~ larval_treatment + weight_mg_centered + (1 | maternalID), ziformula = ~ larval_treatment + weight_mg_centered, family = truncated_nbinom2, data = results_filtered)
 summary(mod.hurdl_4)
 AIC(mod.hurdl_4)
+#2467
 
 mod.hurdl_5 <- glmmTMB(clutch_size ~  weight_mg_centered, ziformula = ~ weight_mg_centered, family = truncated_nbinom2, data = results_filtered)
 summary(mod.hurdl_5)
 AIC(mod.hurdl_5)
+#2462
 
 
 ```
@@ -235,8 +239,7 @@ AMBIENT LARVAL TREATMENT
 
 ```{r}
 results_filtered_ambient <- results %>%
-  filter(
-         larval_treatment == "ambient") %>%
+  filter(larval_treatment %in% c("wild", "ambient")) %>%
   mutate(numerical_pupal_treatment = case_when(
     pupal_treatment == "cool"  ~ -1.5,
     pupal_treatment == "mean"  ~  0.0,
@@ -260,8 +263,8 @@ results_filtered_ambient <- results %>%
 
 results_filtered_ambient <- results_filtered_ambient %>%
   mutate(
-    larval_treatment = factor(larval_treatment, levels = c("ambient", "cool","mean","warm","hot"))
-  )
+    pupal_treatment = factor(pupal_treatment, levels = c("wild", "ambient", "cool","mean","warm","hot")),
+    larval_treatment = factor(larval_treatment, levels = c("wild", "ambient")))
 ```
 
 ```{r}
@@ -269,168 +272,30 @@ results_filtered_ambient <- results_filtered_ambient %>%
 mod.hurdl_1 <- glmmTMB(clutch_size ~ pupal_treatment, ziformula = ~ pupal_treatment, family = truncated_nbinom2, data = results_filtered_ambient)
 summary(mod.hurdl_1)
 AIC(mod.hurdl_1)
-#AIC = 1120
+#AIC = 1936
 
-#THIS IS THE BEST MODEL
-mod.hurdl_2 <- glmmTMB(clutch_size ~ weight_mg_centered, ziformula = ~ weight_mg_centered, family = truncated_nbinom2, data = results_filtered_ambient)
+mod.hurdl_2 <- glmmTMB(clutch_size ~ larval_treatment, ziformula = ~ larval_treatment, family = truncated_nbinom2, data = results_filtered_ambient)
 summary(mod.hurdl_2)
 AIC(mod.hurdl_2)
+#1922
+
+#THIS IS THE BEST MODEL
+mod.hurdl_3 <- glmmTMB(clutch_size ~ weight_mg_centered, ziformula = ~ weight_mg_centered, family = truncated_nbinom2, data = results_filtered_ambient)
+summary(mod.hurdl_3)
+AIC(mod.hurdl_3)
 #AIC = 1099
 
 
-mod.hurdl_3 <- glmmTMB(clutch_size ~ weight_mg_centered + (1 | maternalID), ziformula = ~ weight_mg_centered + (1|maternalID), family = truncated_nbinom2, data = results_filtered_ambient)
-summary(mod.hurdl_3)
-AIC(mod.hurdl_3)
+mod.hurdl_4 <- glmmTMB(clutch_size ~ weight_mg_centered + (1 | maternalID), ziformula = ~ weight_mg_centered + (1|maternalID), family = truncated_nbinom2, data = results_filtered_ambient)
+summary(mod.hurdl_4)
+AIC(mod.hurdl_4)
 #AIC = 1103
 
 ```
 
 
 
-STRUCTURAL EQUATION MODELLING
 
-```{r}
-#library(lavaan)
-
-path_model <- "
-  clutch_size ~ numerical_larval_treatment
-  clutch_size ~ a*weight_mg
-  weight_mg ~ b*numerical_larval_treatment
-  indirect:=a*b
-"
-
-path_estimate <- sem(path_model, data = results_filtered, se = "bootstrap")
-
-summary(path_estimate, ci = TRUE)
-#ok this comes out with significant indirect effects but it doesn't use the negative binomial distribution, which is important when I have zeros and overdispersed count data
-#another option is piecewise SEM with negative binomial distribution
-
-AIC(path_estimate)
-
-
-library(semPlot)
-
-semPaths(path_estimate,
-         what = "std",          # standardized estimates
-         layout = "tree",
-         edge.label.cex = 1.2,
-         sizeMan = 8,
-         nCharNodes = 0,
-         residuals = FALSE)
-```
-
-```{r}
-#try piecewise SEM
-#library(piecewiseSEM) 
-
-#remove zeros from the dataset because I can't do a ZINB or a hurdle model in PSEM
-results_filtered <- results_filtered %>%
- filter(clutch_size != 0) %>%
-  filter(!is.na(egg_mean_1A)) %>%
-  mutate(numerical_larval_treatment = case_when(
-    larval_treatment == "warm"  ~  1.5, #recode the numerical larval treatments
-    larval_treatment == "hot"   ~  2.5))
-
-
-m_model <- lm(weight_mg ~ numerical_larval_treatment, data = results_filtered)
-
-y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + weight_mg,  data = results_filtered)
-
-
-
-sem_model <- psem(m_model, y_model)
-
-summary(sem_model)
-
-summary(sem_model, standardize = "scale", direction = c("weight_mg _> clutch_size"))
-
-
-plot(sem_model, show = "unstd", digits = 2)
-
- 
-```
-
-
-
-
-
-
-
-
-```{r}
-#model without correlated error between egg size and number
-m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment, data = results_filtered)
-
-y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg,  data = results_filtered)
-
-x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + clutch_size + (1|maternalID), data = results_filtered)
-
-sem_model <- psem(m_model, y_model, x_model)
-
-
-
-summary(sem_model, standardize = "scale")
-
-plot(sem_model, show = "std", digits = 2)
-```
-
-
-
-
-```{r}
-#unstandardised model
-
-# Models
-m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment,
-              data = results_filtered)
-
-y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg,
-                  data = results_filtered)
-
-x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + clutch_size + (1|maternalID), data = results_filtered)
-
-# SEM with correlated error between clutch size and egg size
-sem_model <- psem(
-  m_model,
-  y_model,
-  x_model,
-  clutch_size %~~% egg_mean_1A   # this adds the correlated residual
-)
-
-# Summary with standardized coefficients
-summary(sem_model) #dispalys coefficients in z-scores
-
-# Plot standardized SEM
-plot(sem_model, show = "unstd", digits = 2)
-```
-
-
-```{r}
-#standardised model
-# Models
-m_model <- lm(weight_mg_z ~ numerical_larval_treatment + numerical_pupal_treatment,
-              data = results_filtered)
-
-y_model <- lm(clutch_size_z ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg_z,
-                  data = results_filtered)
-
-x_model <- lmer(egg_mean_1A_z ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg_z + clutch_size_z + (1|maternalID), data = results_filtered)
-
-# SEM with correlated error between clutch size and egg size
-sem_model <- psem(
-  m_model,
-  y_model,
-  x_model,
-  clutch_size %~~% egg_mean_1A   # this adds the correlated residual
-)
-
-# Summary with standardized coefficients
-summary(sem_model,  conserve = TRUE) #dispalys coefficients in z-scores
-
-# Plot standardized SEM
-plot(sem_model, show = "std", digits = 2)
-
-```
 
 
 

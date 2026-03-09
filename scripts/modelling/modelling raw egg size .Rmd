@@ -12,7 +12,7 @@ library(lme4)
 ```
 working on the raw egg size measurements for each individual egg
 
-AMBIENT LARVAL TEMPERATURE
+AMBIENT OR WILD LARVAL TEMPERATURE
 ```{r}
 raw_egg_sizes <- read.csv(here("data", "clean data", "raw egg sizes.csv"))
 
@@ -32,9 +32,10 @@ raw_egg_sizes$larval_treatment <- factor(raw_egg_sizes$larval_treatment,
 
 
 
-#looking just at ambient larval temperature.
+#looking just at ambient and wild  larval temperature.
 egg_sizes_ambient_larval <- raw_egg_sizes %>%
-  filter(larval_treatment == "ambient") %>%
+  mutate(larval_treatment = case_when(pupal_treatment == "wild" ~ "wild", TRUE ~ larval_treatment)) %>%
+  filter(larval_treatment %in% c("wild", "ambient")) %>%
   mutate(numerical_pupal_treatment = case_when(
     pupal_treatment == "cool"  ~ -1.5,
     pupal_treatment == "mean"  ~  0.0,
@@ -53,7 +54,7 @@ egg_sizes_ambient_larval <- raw_egg_sizes %>%
 
 egg_sizes_ambient_larval <- egg_sizes_ambient_larval %>%
   mutate(
-    larval_treatment = factor(larval_treatment, levels = c("ambient")))
+    larval_treatment = factor(larval_treatment, levels = c("wild", "ambient")))
 
 summary(raw_egg_sizes$egg_mean_1A)
 sd(raw_egg_sizes$egg_mean_1A)
@@ -71,28 +72,40 @@ ggplot(egg_sizes_ambient_larval, aes(x = area)) +
 
 
 ```{r}
+lm0 <- lm(area ~ larval_treatment, data = egg_sizes_ambient_larval)
+summary(lm0)
+AIC(lm0)
+#-7186
+##no significant difference between wild and ambient
+
 
 lm1 <- lm(area ~ pupal_treatment, data = egg_sizes_ambient_larval)
 summary(lm1)
 AIC(lm1)
 #pupal treatment does affect egg size, compared to ambient
+#-7251
 
 lm2 <- lm(area ~ pupal_treatment + weight_mg_centered, data = egg_sizes_ambient_larval)
 summary(lm2)
 AIC(lm2)
 #so weight does not affect egg size - remove from model
+#-3901
 
 lm3 <- lmer(area ~ pupal_treatment + (1|clutch_ID), data = egg_sizes_ambient_larval )
 summary(lm3)
 AIC(lm3)
 #this is alower AIC so including clutch_ID makes the model better
+#-7584
 
 lm4 <- lmer(area ~ pupal_treatment + (1|clutch_ID) + (1|maternalID), data = egg_sizes_ambient_larval )
 summary(lm4)
 AIC(lm4)
-
+#-7589
 confint(lm4)
 #this has a lower AIC again so including maternalID as a random effect makes the model better.
+
+
+
 ```
 
 ```{r}

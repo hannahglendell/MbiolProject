@@ -25,7 +25,7 @@ results <- results %>%
   filter(larval_treatment %in% c("warm", "hot")) %>%
   mutate(
     larval_treatment = factor(larval_treatment, levels = c("warm","hot")),
-    pupal_treatment = factor(pupal_treatment, levels = c("cool","mean","warm","hot"))
+    pupal_treatment = factor(pupal_treatment, levels = c("ambient", "cool","mean","warm","hot"))
   ) %>%
     mutate(weight_mg = weight * 1000)  %>%
   mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE))
@@ -47,17 +47,17 @@ AIC(lm2)
 lm3 <- lm(egg_mean_1A ~ clutch_size + pupal_treatment, data = results)
 summary(lm3)
 AIC(lm3)
-#AIC = -965
+#AIC = -1171
 
 lm4 <- lm(egg_mean_1A ~ clutch_size + pupal_treatment + larval_treatment, data = results)
 summary(lm4)
 AIC(lm4)
-#AIC = -964
+#AIC = -1169
 
 lm5 <- lmer(egg_mean_1A ~ clutch_size + pupal_treatment + larval_treatment + (1|maternalID), data = results)
 summary(lm5)
 AIC(lm5)
-#AIC = -914
+#AIC = -1105
 
 
 
@@ -114,19 +114,19 @@ summary(lm1)
 
 
 ```
-ambient larval temp (excluding ambient-ambient)
+ambient larval temp 
 
 ```{r}
 results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
 
 results_ambient <- results %>%
-  filter(larval_treatment == "ambient") %>%
-  filter(pupal_treatment != "ambient")
+  filter(larval_treatment == "ambient")
 
 lm1 <- lm(egg_mean_1A ~ clutch_size, data = results_ambient)
 summary(lm1)
 AIC(lm1)
 
+#best model
 lm2 <- lm(egg_mean_1A ~ clutch_size + pupal_treatment, data = results_ambient)
 summary(lm2)
 AIC(lm2)

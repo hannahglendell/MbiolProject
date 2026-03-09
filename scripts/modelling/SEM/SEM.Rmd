@@ -1,0 +1,193 @@
+---
+title: "SEM"
+output: html_document
+---
+
+STRUCTURAL EQUATION MODELLING
+
+
+```{r}
+results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
+
+#make maternal ID a factor
+results$maternalID <- as.factor(results$maternalID)
+
+#remove ambient, because these need to be modelled separately. also remove larval treatment of cool and mean, because the sample size isn't big enough to model - just not enough clutches.
+#I think I will model the ambient larva treatment separately.
+results_filtered <- results %>%
+  filter(
+    larval_treatment %in% c("warm", "hot"),
+    pupal_treatment != "ambient") %>%
+  
+  mutate(numerical_pupal_treatment = case_when(
+    pupal_treatment == "cool"  ~ 10.07,
+    pupal_treatment == "mean"  ~  12.08,
+    pupal_treatment == "warm"  ~  14.08,
+    pupal_treatment == "hot"   ~  15.54,
+    TRUE ~ NA_real_
+  )) %>% 
+  mutate(numerical_larval_treatment = case_when(
+    larval_treatment == "warm"  ~  12.76,
+    larval_treatment == "hot"   ~  13.89,
+    TRUE ~ NA_real_
+  )) %>%
+  mutate(weight_mg = weight * 1000) %>%
+  mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE)) %>%
+  mutate(across(
+    c(weight_mg, egg_mean_1A, clutch_size),
+    ~ as.numeric(scale(.)),
+    .names = "{.col}_z"
+  ))
+
+
+results_filtered <- results_filtered %>%
+  mutate(
+    larval_treatment = factor(larval_treatment, levels = c("warm","hot")),
+    pupal_treatment = factor(pupal_treatment, levels = c("cool","mean","warm","hot"))
+  )
+
+```
+
+
+```{r}
+#library(lavaan)
+
+path_model <- "
+  clutch_size ~ numerical_larval_treatment
+  clutch_size ~ a*weight_mg
+  weight_mg ~ b*numerical_larval_treatment
+  indirect:=a*b
+"
+
+path_estimate <- sem(path_model, data = results_filtered, se = "bootstrap")
+
+summary(path_estimate, ci = TRUE)
+#ok this comes out with significant indirect effects but it doesn't use the negative binomial distribution, which is important when I have zeros and overdispersed count data
+#another option is piecewise SEM with negative binomial distribution
+
+AIC(path_estimate)
+
+
+#library(semPlot)
+
+#semPaths(path_estimate,
+         #what = "std",          # standardized estimates
+        # layout = "tree",
+         #edge.label.cex = 1.2,
+         #sizeMan = 8,
+        # nCharNodes = 0,
+         #residuals = FALSE)
+```
+
+```{r}
+#try piecewise SEM
+#library(piecewiseSEM) 
+
+#remove zeros from the dataset because I can't do a ZINB or a hurdle model in PSEM
+results_filtered <- results_filtered %>%
+ filter(clutch_size != 0) %>%
+  filter(!is.na(egg_mean_1A)) 
+
+
+m_model <- lm(weight_mg ~ numerical_larval_treatment, data = results_filtered)
+
+y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + weight_mg,  data = results_filtered)
+
+
+
+sem_model <- psem(m_model, y_model)
+
+summary(sem_model)
+
+plot(sem_model, show = "std", digits = 2)
+
+
+coefs(sem_model, standardize.type = "menard.OE")
+
+
+coefs(sem_model, standardize = "range")
+ 
+ 
+```
+
+
+
+
+
+
+
+
+```{r}
+#model without correlated error between egg size and number
+m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment, data = results_filtered)
+
+y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg,  data = results_filtered)
+
+x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + clutch_size + (1|maternalID), data = results_filtered)
+
+sem_model <- psem(m_model, y_model, x_model)
+
+
+
+summary(sem_model, standardize = "scale")
+
+plot(sem_model, show = "std", digits = 2)
+```
+
+
+
+
+```{r}
+#unstandardised model
+
+# Models
+m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment,
+              data = results_filtered)
+
+y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg,
+                  data = results_filtered)
+
+x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + clutch_size + (1|maternalID), data = results_filtered)
+
+# SEM with correlated error between clutch size and egg size
+sem_model <- psem(
+  m_model,
+  y_model,
+  x_model,
+  clutch_size %~~% egg_mean_1A   # this adds the correlated residual
+)
+
+# Summary with standardized coefficients
+summary(sem_model) #dispalys coefficients in z-scores
+
+# Plot standardized SEM
+plot(sem_model, show = "unstd", digits = 2)
+```
+
+
+```{r}
+#standardised model
+# Models
+m_model <- lm(weight_mg_z ~ numerical_larval_treatment + numerical_pupal_treatment,
+              data = results_filtered)
+
+y_model <- lm(clutch_size_z ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg_z,
+                  data = results_filtered)
+
+x_model <- lmer(egg_mean_1A_z ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg_z + clutch_size_z + (1|maternalID), data = results_filtered)
+
+# SEM with correlated error between clutch size and egg size
+sem_model <- psem(
+  m_model,
+  y_model,
+  x_model,
+  clutch_size %~~% egg_mean_1A   # this adds the correlated residual
+)
+
+# Summary with standardized coefficients
+summary(sem_model,  conserve = TRUE) #dispalys coefficients in z-scores
+
+# Plot standardized SEM
+plot(sem_model, show = "std", digits = 2)
+
+```
