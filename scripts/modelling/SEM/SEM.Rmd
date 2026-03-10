@@ -5,6 +5,20 @@ output: html_document
 
 STRUCTURAL EQUATION MODELLING
 
+```{r}
+library(here)
+library(ggplot2)
+library(tidyverse)
+library(lme4)
+library(performance)
+library(MASS)
+library(pscl)
+library(piecewiseSEM)
+library(standardize)
+#library(semPlot)
+library(dplyr)
+library(glmmTMB)
+```
 
 ```{r}
 results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
@@ -17,8 +31,7 @@ results$maternalID <- as.factor(results$maternalID)
 results_filtered <- results %>%
   filter(
     larval_treatment %in% c("warm", "hot"),
-    pupal_treatment != "ambient") %>%
-  
+    pupal_treatment != "ambient", clutch_size != 0) %>%
   mutate(numerical_pupal_treatment = case_when(
     pupal_treatment == "cool"  ~ 10.07,
     pupal_treatment == "mean"  ~  12.08,
@@ -47,6 +60,9 @@ results_filtered <- results_filtered %>%
   )
 
 ```
+
+
+
 
 
 ```{r}
@@ -79,75 +95,26 @@ AIC(path_estimate)
          #residuals = FALSE)
 ```
 
-```{r}
-#try piecewise SEM
-#library(piecewiseSEM) 
-
-#remove zeros from the dataset because I can't do a ZINB or a hurdle model in PSEM
-results_filtered <- results_filtered %>%
- filter(clutch_size != 0) %>%
-  filter(!is.na(egg_mean_1A)) 
-
-
-m_model <- lm(weight_mg ~ numerical_larval_treatment, data = results_filtered)
-
-y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + weight_mg,  data = results_filtered)
-
-
-
-sem_model <- psem(m_model, y_model)
-
-summary(sem_model)
-
-plot(sem_model, show = "std", digits = 2)
-
-
-coefs(sem_model, standardize.type = "menard.OE")
-
-
-coefs(sem_model, standardize = "range")
- 
- 
-```
-
-
-
-
-
-
-
-
-```{r}
-#model without correlated error between egg size and number
-m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment, data = results_filtered)
-
-y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg,  data = results_filtered)
-
-x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + clutch_size + (1|maternalID), data = results_filtered)
-
-sem_model <- psem(m_model, y_model, x_model)
-
-
-
-summary(sem_model, standardize = "scale")
-
-plot(sem_model, show = "std", digits = 2)
-```
-
 
 
 
 ```{r}
 #unstandardised model
 
+sem_data <- results_filtered |>
+  dplyr::select(weight_mg_centered, clutch_size, egg_mean_1A,
+                numerical_larval_treatment, numerical_pupal_treatment,
+                maternalID) |>
+  na.omit()
+
 # Models
-m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment,
-              data = results_filtered)
+m_model <- lm(weight_mg_centered ~ numerical_larval_treatment + numerical_pupal_treatment,
+              data = sem_data)
 
-y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg,
-                  data = results_filtered)
+y_model <- glmer.nb(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg_centered + (1|maternalID),
+                  data = sem_data)
 
-x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + clutch_size + (1|maternalID), data = results_filtered)
+x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg_centered + clutch_size + (1|maternalID), data = sem_data)
 
 # SEM with correlated error between clutch size and egg size
 sem_model <- psem(
@@ -157,12 +124,20 @@ sem_model <- psem(
   clutch_size %~~% egg_mean_1A   # this adds the correlated residual
 )
 
+AIC(sem_model)
+
 # Summary with standardized coefficients
-summary(sem_model) #dispalys coefficients in z-scores
+summary(sem_model) 
+
+coefs(sem_model, standardize.type= "Menard.OE" )
+
 
 # Plot standardized SEM
-plot(sem_model, show = "unstd", digits = 2)
+plot(sem_model, show = "std", digits = 2)
 ```
+
+
+
 
 
 ```{r}
@@ -176,6 +151,7 @@ y_model <- lm(clutch_size_z ~ numerical_larval_treatment + numerical_pupal_treat
 
 x_model <- lmer(egg_mean_1A_z ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg_z + clutch_size_z + (1|maternalID), data = results_filtered)
 
+
 # SEM with correlated error between clutch size and egg size
 sem_model <- psem(
   m_model,
@@ -184,6 +160,7 @@ sem_model <- psem(
   clutch_size %~~% egg_mean_1A   # this adds the correlated residual
 )
 
+AIC.psem(sem_model)
 # Summary with standardized coefficients
 summary(sem_model,  conserve = TRUE) #dispalys coefficients in z-scores
 
