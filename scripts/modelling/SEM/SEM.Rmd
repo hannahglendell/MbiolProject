@@ -102,10 +102,10 @@ AIC(path_estimate)
 #unstandardised model
 
 sem_data <- results_filtered |>
-  dplyr::select(weight_mg, clutch_size, egg_mean_1A,
+  dplyr::select(adultID, weight_mg, clutch_size, egg_mean_1A,
                 numerical_larval_treatment, numerical_pupal_treatment,
-                maternalID) |>
-  na.omit()
+                maternalID) %>%
+  filter(!is.na(egg_mean_1A))
 
 # Models
 m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment,
