@@ -139,7 +139,7 @@ CLEANING UP THE AMBIENT TEMPERATURE DATA
 
 ```{r}
 #read in the dataset
-ambient_data <- read.csv2(here("data", "raw data", "data_ambient_1_081225.csv"))
+ambient_data <- read.csv2(here("data", "raw data", "ambient thermologger.csv"))
 
 #rename the datetime column
 names(ambient_data)[names(ambient_data) == "X2023.01.30.15.30"] <- "datetime"
@@ -160,13 +160,13 @@ ambient_data$datetime <- as.POSIXct(
 
 #rename the temperature column
 ambient_data <- ambient_data %>%
-  rename(temperature = X21.06)
+  rename(temperature = X21.0625)
 
 #now filter so that I am only looking at data from the first february 2025. for some reason, the temperatures in january seem way too high
 #was the thermologger used for something else in january? was it indoors?
 ambient_data_feb2025 <- ambient_data %>%
   filter(datetime >= as.POSIXct("2025-02-01 00:00:00", tz = "UTC")) %>%
-  select(datetime, temperature)
+  dplyr::select(datetime,temperature)
 
 #make sure temperature is saved as a numeric variable
 ambient_data_feb2025$temperature <- as.numeric(ambient_data_feb2025$temperature)

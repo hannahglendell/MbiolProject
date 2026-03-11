@@ -55,10 +55,6 @@ results_filtered <- results_filtered %>%
     pupal_treatment = factor(pupal_treatment, levels = c("cool","mean","warm","hot"))
   )
 
-results_filtered$clutch_size_log <- log(results_filtered$clutch_size)
-
-hist(results_filtered$clutch_size_log)
-
 ```
 
 
@@ -101,7 +97,7 @@ AIC(path_estimate)
 ```{r}
 #unstandardised model
 
-sem_data <- results_filtered |>
+sem_data <- results_filtered %>%
   dplyr::select(adultID, weight_mg, clutch_size, egg_mean_1A,
                 numerical_larval_treatment, numerical_pupal_treatment,
                 maternalID) %>%
@@ -129,10 +125,8 @@ summary(sem_model, standardize = "scale",  conserve = TRUE)
 
 coefs(sem_model, standardize = "scale", standardize.type = "Menard.OE")
 
-
 # Plot standardized SEM
-plot(sem_model, show = "unstd", digits = 2)
-
+plot(sem_model, show = "std", digits = 2)
 
 
 ```
@@ -145,11 +139,11 @@ I DONT KNOW WHY THIS WORKS BUT IT DOES
 #this works because i haven't filtered the data, but I don't know why that has made a difference
 #also i don't have a correlated error in this model, that also probably makes a difference
 
-m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment, data = results_filtered)
+m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment, data = sem_data)
 
-y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg,  data = results_filtered)
+y_model <- glmmTMB(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg + (1|maternalID), data = sem_data, family = nbinom2)
 
-x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + clutch_size + (1|maternalID), data = results_filtered)
+x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + clutch_size + (1|maternalID), data = sem_data)
 
 sem_model <- psem(m_model, y_model, x_model)
 

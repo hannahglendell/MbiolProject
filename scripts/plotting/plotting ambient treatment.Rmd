@@ -74,7 +74,7 @@ daily_mean_treatments_long <- daily_mean_treatments %>%
     names_to = "date_type",
     values_to = "date"
   ) %>%
-  select(-date_type)
+  dplyr::select(-date_type)
 
 
 # Convert wide to long so we have treatment and mean_temperature columns
