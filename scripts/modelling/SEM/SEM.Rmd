@@ -125,6 +125,9 @@ plot(sem_model, show = "std", digits = 2)
 #set.seed(123)
 #standardised_effects <- semEff(sem_model,R = 1000, ran.eff = "maternalID")
 
+standardised_effects <- readRDS("~/University stuff/Year 4/results/R project/data/clean data/standardised_effects.rds")
+
+
 summary(standardised_effects)
 
 print(standardised_effects)

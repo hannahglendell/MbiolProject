@@ -11,9 +11,6 @@ library(lme4)
 library(performance)
 library(MASS)
 library(pscl)
-library(piecewiseSEM)
-library(standardize)
-#library(semPlot)
 library(dplyr)
 library(glmmTMB)
 ```
@@ -217,13 +214,16 @@ abline(0, 1, col = "red")
 
 
 
-
+THE EFFECT OF LARVAL TEMP ON FEMALE MASS
 
 ```{r}
 #looking at the effect of larval treatment on female mass
+
+results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
+
 results <- results %>%
   mutate(
-    larval_treatment = factor(larval_treatment, levels = c("cool","mean","warm","hot"))
+    larval_treatment = factor(larval_treatment, levels = c("ambient", "cool","mean","warm","hot"))
   ) %>%
   mutate(weight_mg = weight * 1000)
 
