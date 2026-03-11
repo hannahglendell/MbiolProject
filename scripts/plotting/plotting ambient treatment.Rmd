@@ -172,10 +172,10 @@ ggsave("temperature treatments.png", plot = plot_1, width = 8, height = 6, dpi =
 # Filter for 16 May onwards, to show temperature as pupa/adult
 # 16th may is the median pupation date for the ambient larval treatment
 allocation_period_treatments <- plot_data_clean %>%
-  filter(date >= as.Date("2025-05-16"))
+    filter(date >= as.Date("2025-05-16") & date <= as.Date("2025-12-29"))
 
 allocation_period_ambient <- daily_means %>%
-  filter(date >= as.Date("2025-05-16"))
+  filter(date >= as.Date("2025-05-16") & date <= as.Date("2025-12-29"))
 
 # Combine plots
 ambient_temp_resource_allocation <- ggplot() +

@@ -14,6 +14,7 @@ library(MASS)
 library(piecewiseSEM)
 library(dplyr)
 library(glmmTMB)
+library(semEff)
 ```
 
 ```{r}
@@ -33,12 +34,10 @@ results_filtered <- results %>%
     pupal_treatment == "mean"  ~  12.08,
     pupal_treatment == "warm"  ~  14.08,
     pupal_treatment == "hot"   ~  15.54,
-    TRUE ~ NA_real_
   )) %>% 
   mutate(numerical_larval_treatment = case_when(
     larval_treatment == "warm"  ~  12.76,
     larval_treatment == "hot"   ~  13.89,
-    TRUE ~ NA_real_
   )) %>%
   mutate(weight_mg = weight * 1000) %>%
   mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE)) %>%
@@ -49,12 +48,6 @@ results_filtered <- results %>%
   ))
 
 
-results_filtered <- results_filtered %>%
-  mutate(
-    larval_treatment = factor(larval_treatment, levels = c("warm","hot")),
-    pupal_treatment = factor(pupal_treatment, levels = c("cool","mean","warm","hot"))
-  )
-
 ```
 
 
@@ -62,7 +55,7 @@ results_filtered <- results_filtered %>%
 
 
 ```{r}
-#library(lavaan)
+library(lavaan)
 
 path_model <- "
   clutch_size ~ numerical_larval_treatment
@@ -95,7 +88,7 @@ AIC(path_estimate)
 
 
 ```{r}
-#unstandardised model
+#psem model
 
 sem_data <- results_filtered %>%
   dplyr::select(adultID, weight_mg, clutch_size, egg_mean_1A,
@@ -128,31 +121,21 @@ coefs(sem_model, standardize = "scale", standardize.type = "Menard.OE")
 # Plot standardized SEM
 plot(sem_model, show = "std", digits = 2)
 
+#use the semEff package to get standardised effects and confidence intervals
+#set.seed(123)
+#standardised_effects <- semEff(sem_model,R = 1000, ran.eff = "maternalID")
 
+summary(standardised_effects)
+
+print(standardised_effects)
+
+#save the standardised effects so I don't have to re-run the bootstrap every time
+saveRDS(
+  standardised_effects,
+  file = here("data", "clean data", "standardised_effects.rds")
+)
 ```
 
-I DONT KNOW WHY THIS WORKS BUT IT DOES
 
-
-```{r}
-
-#this works because i haven't filtered the data, but I don't know why that has made a difference
-#also i don't have a correlated error in this model, that also probably makes a difference
-
-m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment, data = sem_data)
-
-y_model <- glmmTMB(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg + (1|maternalID), data = sem_data, family = nbinom2)
-
-x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + clutch_size + (1|maternalID), data = sem_data)
-
-sem_model <- psem(m_model, y_model, x_model)
-
-
-summary(sem_model, standardize = "scale")
-
-coefs(sem_model, standardize = "scale", standardize.type = "Menard.OE")
-
-plot(sem_model, show = "std", digits = 2)
-```
 
 
