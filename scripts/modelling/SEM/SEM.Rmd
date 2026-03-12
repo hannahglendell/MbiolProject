@@ -55,22 +55,22 @@ results_filtered <- results %>%
 
 
 ```{r}
-library(lavaan)
+#library(lavaan)
 
-path_model <- "
-  clutch_size ~ numerical_larval_treatment
-  clutch_size ~ a*weight_mg
-  weight_mg ~ b*numerical_larval_treatment
-  indirect:=a*b
-"
+#path_model <- "
+#  clutch_size ~ numerical_larval_treatment
+ # clutch_size ~ a*weight_mg
+ # weight_mg ~ b*numerical_larval_treatment
+ # indirect:=a*b
+#"
 
-path_estimate <- sem(path_model, data = results_filtered, se = "bootstrap")
+#path_estimate <- sem(path_model, data = results_filtered, se = "bootstrap")
 
-summary(path_estimate, ci = TRUE)
+#summary(path_estimate, ci = TRUE)
 #ok this comes out with significant indirect effects but it doesn't use the negative binomial distribution, which is important when I have zeros and overdispersed count data
 #another option is piecewise SEM with negative binomial distribution
 
-AIC(path_estimate)
+#AIC(path_estimate)
 
 
 #library(semPlot)
@@ -102,7 +102,7 @@ m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment
 
 y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg, data = sem_data)
 
-x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + clutch_size + (1|maternalID), data = sem_data)
+x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + clutch_size + weight_mg + (1|maternalID), data = sem_data)
 
 # SEM with correlated error between clutch size and egg size
 sem_model <- psem(
@@ -112,6 +112,7 @@ sem_model <- psem(
   clutch_size %~~% egg_mean_1A   # this adds the correlated residual
 )
 
+basisSet(sem_model)
 
 # Summary with standardized coefficients
 summary(sem_model, standardize = "scale",  conserve = TRUE) 
@@ -120,6 +121,8 @@ coefs(sem_model, standardize = "scale", standardize.type = "Menard.OE")
 
 # Plot standardized SEM
 plot(sem_model, show = "std", digits = 2)
+
+dSep(sem_model)
 
 #use the semEff package to get standardised effects and confidence intervals
 #set.seed(123)
@@ -133,12 +136,37 @@ summary(standardised_effects)
 print(standardised_effects)
 
 #save the standardised effects so I don't have to re-run the bootstrap every time
-saveRDS(
-  standardised_effects,
-  file = here("data", "clean data", "standardised_effects.rds")
-)
+#saveRDS(
+# standardised_effects,
+ # file = here("data", "clean data", "standardised_effects.rds")
+#)
 ```
 
+
+```{r}
+#trying to understand d-separation
+
+y_model <- glm.nb(clutch_size ~ weight_mg, data = sem_data)
+
+m_model <- lm(weight_mg ~ numerical_larval_treatment, data = sem_data)
+
+
+# SEM with correlated error between clutch size and egg size
+sem_model <- psem(
+  y_model, m_model # this adds the correlated residual
+)
+
+
+# Summary with standardized coefficients
+summary(sem_model, standardize = "scale",  conserve = TRUE)
+
+plot(sem_model)
+
+dSep(sem_model)
+
+AIC(sem_model)
+#2969
+```
 
 
 
