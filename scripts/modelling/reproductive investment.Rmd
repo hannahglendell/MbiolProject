@@ -4,6 +4,13 @@ output: html_document
 ---
 
 ```{r}
+library(here)
+library(tidyverse)
+
+```
+
+
+```{r}
 results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
 ```
 
@@ -13,7 +20,67 @@ results <- results %>%
          reproductive_investment = if_else(is.na(reproductive_investment), 0, reproductive_investment))
 
 hist(results$reproductive_investment)
+#really skewed data
+
+#try a log transformation
+results$reproductive_investment_log <- log(results$reproductive_investment)
+hist(results$reproductive_investment_log)
+
+#try a sqaure root transformation
+results$reproductive_investment_sqrt<- sqrt(results$reproductive_investment)
+hist(results$reproductive_investment_sqrt)
+
+
+results <- results %>%
+  mutate(treatment_combination = paste(larval_treatment, pupal_treatment, sep = "_")) 
+
+
+mean_investment <- results %>%
+   group_by(treatment_combination) %>%
+  summarise(mean_reproductive_investment = mean(reproductive_investment, na.rm = TRUE),
+            n = n())
+
+
 ```
+
+
+```{r}
+#assign order to the treatment combinations
+order_levels <- rev(c(
+  "wild_wild",
+  "ambient_ambient", "ambient_cool", "ambient_mean", "ambient_warm", "ambient_hot",
+  "cool_ambient", "cool_cool", "cool_mean", "cool_warm", "cool_hot", "mean_ambient", "mean_cool", "mean_mean", "mean_warm", "mean_hot","warm_ambient", "warm_cool", "warm_mean", "warm_warm", "warm_hot",
+  "hot_ambient", "hot_cool", "hot_mean", "hot_warm", "hot_hot"))
+
+#assign levels to the treatment combinations
+results <- results %>%
+  mutate(treatment_combination = factor(treatment_combination, levels = order_levels))
+
+
+#assign colours to the temperatures                           
+temp_cols <- c(
+  ambient = "#484A4C",
+  cool    = "#76C0CC",
+  mean    = "#F9CA0F",
+  warm    = "#E87A36",
+  hot     = "#AF0808")
+
+#convert the larval  temperatures to factors so the plot in the correct order
+results$larval_treatment <- factor(results$larval_treatment,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
+
+
+ggplot(results, aes(x = treatment_combination, 
+                    y = reproductive_investment, fill = larval_treatment)) +
+  stat_summary(fun = mean, geom = "bar") +
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.2) +
+    scale_fill_manual(values = temp_cols) +
+  labs(x = "Treatment combination",
+       y = "Mean reproductive investment") +
+  coord_flip() +
+  theme_minimal()
+```
+
 
 ```{r}
 #convert the pupal temperatures to factors so they plot in the correct order
