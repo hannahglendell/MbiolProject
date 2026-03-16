@@ -136,27 +136,34 @@ summary(raw_effects)
 
 now I want to generate model predictions so that I can plot them
 ```{r}
+
+
+#bootstrap estimates for the model
 sem.boot <- bootEff(sem_model, R = 1000, seed = 123, ran.eff = "maternalID")
 
+#use the bootstrap estimates to calculate effects and confidence intervals
 sem.eff <- semEff(sem.boot)
+summary(sem.eff)
 
-tot <- getTotEff(sem.eff, "numerical_larval_treatment")
 
-#i want to plot the total effect of larval temp on clutch size
+#get the total effects of each variable used for prediction:
+tot <- getTotEff(sem.eff, "clutch.size")
+tot.b <- getTotEff(sem.eff, "clutch.size", type = "boot")
 
-fit <- sapply("numerical_larval_treatment", function(i) {
+names(tot)
 
-  x <- data.frame(seq(min(sem_data[[i]]), max(sem_data[[i]]), length = 100))
-  names(x) <- i
-  
-  f <- predEff(sem_model,
-               newdata = x,
-               effects = tot[i],
-               eff.boot = tot.b)
-  
+dat <- na.omit(results_filtered)
+mod <- y_model
+fit <- sapply(c("numerical_larval_treatment", "weight_mg"), function(i) {
+  x <- data.frame(seq(min(dat[[i]]), max(dat[[i]]), length = 100)); names(x) <- i
+  f <- predEff(mod, newdata = x, effects = tot[i], eff.boot = tot.b)
   cbind(x, f)
-
 }, simplify = FALSE)
+
+```
+
+```{r}
+
 ```
 
 
