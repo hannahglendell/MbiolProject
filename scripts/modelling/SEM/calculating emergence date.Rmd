@@ -1,0 +1,18 @@
+---
+title: "calculating emergence date"
+output: html_document
+---
+
+```{r}
+hatch_dates <- read.csv(here("data", "raw data", "wild moths hatch dates.csv"))
+```
+
+```{r}
+# Convert to Date
+hatch_dates$capture_date <- as.Date(hatch_dates$capture_date, format = "%d/%m/%Y")
+
+# Calculate median date
+median_date <- median(hatch_dates$capture_date, na.rm = TRUE)
+#median emergence date is the 28th november 2025
+```
+

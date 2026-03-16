@@ -1,0 +1,57 @@
+---
+title: "calculating 5km square coordinates"
+output: html_document
+---
+
+to calculate the coordinates of a 5km square around wytham woods
+
+the coordinates of wytham chalet are: 51.77248375199428, -1.3378001346658057
+
+```{r}
+library(sf)
+```
+
+```{r}
+#create the central point
+lon <- -1.3378001346658057
+lat <- 51.77248375199428
+
+pt <- st_sfc(st_point(c(lon, lat)), crs = 4326)
+
+#transform to a metric crs (in meters)
+pt_utm <- st_transform(pt, 32630)  # UTM zone 30N (covers Oxford, UK)
+```
+
+```{r}
+#create the corner points of the square
+coords <- st_coordinates(pt_utm)
+
+x <- coords[1]
+y <- coords[2]
+
+half <- 2500
+
+square <- st_polygon(list(rbind(
+  c(x-half, y-half),
+  c(x+half, y-half),
+  c(x+half, y+half),
+  c(x-half, y+half),
+  c(x-half, y-half)
+)))
+
+square <- st_sfc(square, crs = 32630)
+```
+
+```{r}
+#convert back to lat/long
+square_ll <- st_transform(square, 4326)
+
+st_coordinates(square_ll)
+```
+
+```{r}
+wkt_square <- st_as_text(square_ll)
+
+wkt_square
+```
+

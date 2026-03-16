@@ -50,53 +50,19 @@ results_filtered <- results %>%
 
 ```
 
-
-
-
-
 ```{r}
-#library(lavaan)
-
-#path_model <- "
-#  clutch_size ~ numerical_larval_treatment
- # clutch_size ~ a*weight_mg
- # weight_mg ~ b*numerical_larval_treatment
- # indirect:=a*b
-#"
-
-#path_estimate <- sem(path_model, data = results_filtered, se = "bootstrap")
-
-#summary(path_estimate, ci = TRUE)
-#ok this comes out with significant indirect effects but it doesn't use the negative binomial distribution, which is important when I have zeros and overdispersed count data
-#another option is piecewise SEM with negative binomial distribution
-
-#AIC(path_estimate)
-
-
-#library(semPlot)
-
-#semPaths(path_estimate,
-         #what = "std",          # standardized estimates
-        # layout = "tree",
-         #edge.label.cex = 1.2,
-         #sizeMan = 8,
-        # nCharNodes = 0,
-         #residuals = FALSE)
-```
-
-
-
-
-```{r}
-#psem model
-
+#filter the dataset to just have the columns I need
 sem_data <- results_filtered %>%
   dplyr::select(adultID, weight_mg, clutch_size, egg_mean_1A,
                 numerical_larval_treatment, numerical_pupal_treatment,
                 maternalID) %>%
   filter(!is.na(egg_mean_1A))
+```
 
-# Models
+
+
+```{r}
+# individual models to go into the psem
 m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment,
               data = sem_data)
 
@@ -112,18 +78,23 @@ sem_model <- psem(
   clutch_size %~~% egg_mean_1A   # this adds the correlated residual
 )
 
-basisSet(sem_model)
 
 # Summary with standardized coefficients
 summary(sem_model, standardize = "scale",  conserve = TRUE) 
 
+#standardised coefficients
 coefs(sem_model, standardize = "scale", standardize.type = "Menard.OE")
 
 # Plot standardized SEM
 plot(sem_model, show = "std", digits = 2)
 
-dSep(sem_model)
 
+
+
+```
+
+
+```{r}
 #use the semEff package to get standardised effects and confidence intervals
 #set.seed(123)
 #standardised_effects <- semEff(sem_model,R = 1000, ran.eff = "maternalID")
@@ -143,30 +114,49 @@ print(standardised_effects)
 ```
 
 
+
 ```{r}
-#trying to understand d-separation
+#to get unstandardised (raw) coefficients
+#set.seed(123)
 
-y_model <- glm.nb(clutch_size ~ weight_mg, data = sem_data)
+#effects <- bootEff(sem_model, R = 1000, ran.eff = "maternalID", incl.raw = TRUE) 
 
-m_model <- lm(weight_mg ~ numerical_larval_treatment, data = sem_data)
+#raw_effects <- semEff(effects, use.raw = TRUE)
 
-
-# SEM with correlated error between clutch size and egg size
-sem_model <- psem(
-  y_model, m_model # this adds the correlated residual
-)
+#saveRDS(raw_effects, file = here("data", "clean data", "raw_effects.rds"))
 
 
-# Summary with standardized coefficients
-summary(sem_model, standardize = "scale",  conserve = TRUE)
+raw_effects <- readRDS("~/University stuff/Year 4/results/R project/data/clean data/raw_effects.rds")
 
-plot(sem_model)
 
-dSep(sem_model)
+summary(raw_effects)
 
-AIC(sem_model)
-#2969
+
 ```
 
+now I want to generate model predictions so that I can plot them
+```{r}
+sem.boot <- bootEff(sem_model, R = 1000, seed = 123, ran.eff = "maternalID")
+
+sem.eff <- semEff(sem.boot)
+
+tot <- getTotEff(sem.eff, "numerical_larval_treatment")
+
+#i want to plot the total effect of larval temp on clutch size
+
+fit <- sapply("numerical_larval_treatment", function(i) {
+
+  x <- data.frame(seq(min(sem_data[[i]]), max(sem_data[[i]]), length = 100))
+  names(x) <- i
+  
+  f <- predEff(sem_model,
+               newdata = x,
+               effects = tot[i],
+               eff.boot = tot.b)
+  
+  cbind(x, f)
+
+}, simplify = FALSE)
+```
 
 

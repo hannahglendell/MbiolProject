@@ -59,6 +59,12 @@ summary(lm5)
 AIC(lm5)
 #AIC = -1105
 
+lm6 <- lm(egg_mean_1A ~ clutch_size + pupal_treatment + weight_mg_centered, data = results)
+summary(lm6)
+AIC(lm6)
+#AIC = -1169
+#female mass does not have an effect on egg size
+
 
 
 
