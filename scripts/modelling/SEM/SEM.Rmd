@@ -136,34 +136,167 @@ summary(raw_effects)
 
 now I want to generate model predictions so that I can plot them
 ```{r}
-
-
 #bootstrap estimates for the model
-sem.boot <- bootEff(sem_model, R = 1000, seed = 123, ran.eff = "maternalID")
+#sem.boot <- bootEff(sem_model, R = 1000, seed = 123, ran.eff = "maternalID")
+
+#save this so i don't have to re-run this bootstrap every single time
+#saveRDS(sem.boot, file = here("data", "clean data", "sem.boot.rds"))
+
+#now read in the bootstrapped estimates for the model, that i saved earlier
+sem.boot <- readRDS("~/University stuff/Year 4/results/R project/data/clean data/sem.boot.rds")
+
 
 #use the bootstrap estimates to calculate effects and confidence intervals
 sem.eff <- semEff(sem.boot)
 summary(sem.eff)
+```
 
 
-#get the total effects of each variable used for prediction:
+```{r}
+#get predicted total effects for clutch size
 tot <- getTotEff(sem.eff, "clutch.size")
 tot.b <- getTotEff(sem.eff, "clutch.size", type = "boot")
 
-names(tot)
+#get the predicted direct effects for clutch size
+dir    <- getDirEff(sem.eff, "clutch.size")
+dir.b  <- getDirEff(sem.eff, "clutch.size", type = "boot")
 
-dat <- na.omit(results_filtered)
-mod <- y_model
-fit <- sapply(c("numerical_larval_treatment", "weight_mg"), function(i) {
-  x <- data.frame(seq(min(dat[[i]]), max(dat[[i]]), length = 100)); names(x) <- i
-  f <- predEff(mod, newdata = x, effects = tot[i], eff.boot = tot.b)
-  cbind(x, f)
-}, simplify = FALSE)
+#get the predicted indirect effects for clutch size
+ind    <- getIndEff(sem.eff, "clutch.size")
+ind.b  <- getIndEff(sem.eff, "clutch.size", type = "boot")
+
+# fix names to match model - this fixed the problem that the model uses "." while my columns have "_"
+# write the function to fix the names
+fix_names <- function(x) gsub("\\.", "_", x)
+
+#apply the function the effects and their confidence intervals
+names(tot)   <- fix_names(names(tot))
+names(dir)   <- fix_names(names(dir))
+names(ind)   <- fix_names(names(ind))
+colnames(tot.b) <- fix_names(colnames(tot.b))
+colnames(dir.b) <- fix_names(colnames(dir.b))
+colnames(ind.b) <- fix_names(colnames(ind.b))
+
+
+
+#names(tot) <- gsub("\\.", "_", names(tot))
+#colnames(tot.b) <- gsub("\\.", "_", colnames(tot.b))
+
+#create a new dataframe called x that has the value of larval_treatment to predict clutch size for. it keeps pupal treatment constant at the mean, and keeps female mass constant at the mean.
+x <- data.frame(
+  numerical_larval_treatment = seq(min(sem_data$numerical_larval_treatment, na.rm = TRUE),
+                                   max(sem_data$numerical_larval_treatment, na.rm = TRUE),
+                                   length = 100),
+  numerical_pupal_treatment  = mean(sem_data$numerical_pupal_treatment, na.rm = TRUE),
+  weight_mg                  = mean(sem_data$weight_mg, na.rm = TRUE)
+)
+
+#use predEff()to predict the clutch size for our dataframe of larval treatment
+fit_tot <- predEff(y_model, newdata = x, effects = tot, eff.boot = tot.b, type = "response")
+
+fit_dir <- predEff(y_model, newdata = x, effects = dir, eff.boot = dir.b, type = "response")
+
+fit_ind <- predEff(y_model, newdata = x, effects = ind, eff.boot = ind.b, type = "response")
+
 
 ```
 
 ```{r}
+#now plot the effects
+#write a function to plot the effects using ggplot2
+plotFit <- function(x, fit, rawdata, xvar, yvar, x.lab = NULL, y.lab = NULL) {
 
+  pred_df <- data.frame(
+    x = x,
+    fit = fit$fit,
+    ci.l = fit$ci.lower,
+    ci.u = fit$ci.upper
+  )
+
+  ggplot() +
+    # raw data
+    geom_point(data = rawdata,
+               aes_string(x = xvar, y = yvar),
+               alpha = 0.5) +
+
+    # confidence ribbon
+    geom_ribbon(data = pred_df,
+                aes(x = x, ymin = ci.l, ymax = ci.u),
+                fill = "blue", alpha = 0.15) +
+
+    # fitted line
+    geom_line(data = pred_df,
+              aes(x = x, y = fit),
+              color = "blue", linewidth = 1) +
+
+    xlab(x.lab) +
+    ylab(y.lab) +
+    theme_bw()
+}
 ```
 
+
+```{r}
+plotFit(
+  x = x$numerical_larval_treatment,
+  fit = fit_ind,
+  rawdata = sem_data,
+  xvar = "numerical_larval_treatment",
+  yvar = "clutch_size",
+  x.lab = "Larval treatment (total effect)",
+  y.lab = "Clutch size"
+)
+```
+now do this if i want to plot the direct, indirect and total effects all together in one plot
+
+```{r}
+#join the predicted total, direct, and indirect effect into one dataframe
+df_plot <- rbind(
+  data.frame(x = x$numerical_larval_treatment,
+             fit = fit_tot$fit,
+             ci.l = fit_tot$ci.lower,
+             ci.u = fit_tot$ci.upper,
+             effect = "Total"),
+
+  data.frame(x = x$numerical_larval_treatment,
+             fit = fit_dir$fit,
+             ci.l = fit_dir$ci.lower,
+             ci.u = fit_dir$ci.upper,
+             effect = "Direct"),
+
+  data.frame(x = x$numerical_larval_treatment,
+             fit = fit_ind$fit,
+             ci.l = fit_ind$ci.lower,
+             ci.u = fit_ind$ci.upper,
+             effect = "Indirect")
+)
+```
+
+
+```{r}
+#now plot all the effects together in one plot
+ggplot() +
+  # raw data
+  geom_point(data = sem_data,
+             aes(x = numerical_larval_treatment, y = clutch_size),
+             alpha = 0.4) +
+
+  # confidence ribbons
+  geom_ribbon(data = df_plot,
+              aes(x = x, ymin = ci.l, ymax = ci.u, fill = effect),
+              alpha = 0.2) +
+
+  # lines
+  geom_line(data = df_plot,
+            aes(x = x, y = fit, colour = effect),
+            linewidth = 1) +
+
+  labs(
+    x = "mean temperature during resource acquisition",
+    y = "Clutch size (number of eggs)",
+    colour = "Effect",
+    fill = "Effect"
+  ) +
+  theme_bw()
+```
 

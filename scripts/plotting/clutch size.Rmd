@@ -154,11 +154,12 @@ ggplot(results,
      coord_cartesian(ylim = c(0, 400)) +
     scale_fill_manual(values = temp_cols) +
     scale_color_manual(values = temp_cols) +
-    theme_minimal() +
+    geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
+    theme_bw() +
     theme(legend.position = "none") +
     labs(
-      x = "larval temperature",
-      y = "clutch size",
+      x = "resource acquisition temperature",
+      y = "clutch size (number of eggs)",
       title = paste("")
     )
 ```

@@ -115,7 +115,8 @@ ggplot(weight_results,
     scale_y_continuous(limits = c(0.006, 0.05)) +
     scale_fill_manual(values = temp_cols) +
     scale_color_manual(values = temp_cols) +
-    theme_minimal() +
+  geom_vline(xintercept = 1.5, linetype = "dashed", color = "black") +
+    theme_bw() +
     theme(legend.position = "none") +
     labs(
       x = "larval temperature",
@@ -132,9 +133,10 @@ ggplot(weight_results,
 ggplot(weight_results, aes(x = weight, y = clutch_size, fill = larval_treatment)) +
   geom_point(aes(color = larval_treatment)) +
   scale_color_manual(values = temp_cols) +
+  theme_bw() +
     labs(
-      x = "female mass",
-      y = "clutch size")
+      x = "female mass (g)",
+      y = "clutch size (number of eggs)")
 
 
 ggplot(weight_results, aes(x = weight, y = egg_mean_1A)) +

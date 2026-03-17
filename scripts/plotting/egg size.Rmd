@@ -53,12 +53,12 @@ larval_temp_ambient <- ggplot(
     drop = FALSE) +
   scale_fill_manual(values = temp_cols) +
   scale_color_manual(values = temp_cols) +
-  theme_minimal() +
+  theme_bw() +
   theme(legend.position = "none") +
   labs(
-    x = "Pupal temperature",
+    x = "Resource allocation temperature",
     y = expression(Mean~egg~area~(mm^2)),
-    title = "Larval temperature: ambient OR wild") +
+    title = "ambient or wild acquisition temperature") +
   #overlay wild data
   geom_jitter(
     data = results %>% 
@@ -81,6 +81,10 @@ larval_temp_ambient <- ggplot(
 
 larval_temp_ambient
 
+
+#convert the pupal temperatures to factors so they plot in the correct order
+results$pupal_treatment <- factor(results$pupal_treatment,
+                             levels = c("ambient", "cool", "mean", "warm", "hot"))
 
 #make a separate plot for each larval temperature
 larval_levels <- c("cool", "mean", "warm", "hot")
@@ -191,12 +195,13 @@ ggplot(larval_temp_warmhot,
   scale_y_continuous(limits = c(0.16, 0.27)) +
     scale_fill_manual(values = temp_cols) +
     scale_color_manual(values = temp_cols) +
-    theme_minimal() +
+  geom_vline(xintercept = 1.5, linetype = "dashed", color = "black") +
+    theme_bw() +
     theme(legend.position = "none") +
     labs(
-      x = "pupal temperature",
+      x = "Resource allocation temperature",
       y = expression(Mean~egg~area~(mm^2)),
-      title = paste("warm or hot larval temperature")
+      title = paste("warm or hot acquisition temperature")
     )
 ```
 

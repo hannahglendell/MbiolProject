@@ -44,7 +44,7 @@ ggplot(
   geom_point() +
     labs(
       x = expression(Mean~egg~area~(mm^2)),
-      y = "clutch size") + 
+      y = "clutch size (number of eggs)") + 
   theme_bw()
 
 wild_moths_trade_off
@@ -88,7 +88,7 @@ ggplot(
   geom_point(aes(), alpha = 1.5) +
     labs(
       x = expression(Mean~egg~area~(mm^2)),
-      y = "clutch size") +
+      y = "clutch size (number of eggs)") +
   theme_bw()
 
 
