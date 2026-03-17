@@ -50,6 +50,7 @@ results_filtered <- results %>%
 
 ```
 
+filtering the dataset
 ```{r}
 #filter the dataset to just have the columns I need
 sem_data <- results_filtered %>%
@@ -59,8 +60,7 @@ sem_data <- results_filtered %>%
   filter(!is.na(egg_mean_1A))
 ```
 
-
-
+fitting the psem model
 ```{r}
 # individual models to go into the psem
 m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment,
@@ -275,8 +275,8 @@ df_plot <- rbind(
 ggplot() +
   # raw data
   geom_point(data = sem_data,
-             aes(x = numerical_larval_treatment, y = clutch_size),
-             alpha = 0.4) +
+           aes(x = numerical_larval_treatment, y = clutch_size),
+            alpha = 0.8) +
 
   # confidence ribbons
   geom_ribbon(data = df_plot,
@@ -294,6 +294,6 @@ ggplot() +
     colour = "Effect",
     fill = "Effect"
   ) +
-  theme_bw()
+  theme_bw() 
 ```
 
