@@ -88,9 +88,6 @@ coefs(sem_model, standardize = "scale", standardize.type = "Menard.OE")
 # Plot standardized SEM
 plot(sem_model, show = "std", digits = 2)
 
-
-
-
 ```
 
 
@@ -292,8 +289,8 @@ ggplot() +
             linewidth = 1) +
 
   labs(
-    x = "mean temperature during resource acquisition",
-    y = "Clutch size (number of eggs)",
+     x = expression("Resource acquisition temperature (" * degree * "C)"),
+    y = "clutch size (number of eggs)",
     colour = "Effect",
     fill = "Effect"
   ) +
