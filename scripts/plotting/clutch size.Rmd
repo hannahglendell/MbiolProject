@@ -33,7 +33,9 @@ temp_cols <- c(
   warm    = "#E87A36",
   hot     = "#AF0808")
 
-
+#remove clutches of 0 eggs
+results <- results %>%
+  filter(clutch_size != 0)
 
 ```
 
@@ -157,6 +159,12 @@ ggplot(results,
     geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
     theme_bw() +
     theme(legend.position = "none") +
+   geom_point(aes(x = "warm", y = 109),
+               shape = 8, size = 5, colour = "black",
+               inherit.aes = FALSE) +
+   geom_point(aes(x = "hot", y = 138),
+               shape = 8, size = 5, colour = "black",
+               inherit.aes = FALSE) +
     labs(
       x = "resource acquisition temperature",
       y = "clutch size (number of eggs)",

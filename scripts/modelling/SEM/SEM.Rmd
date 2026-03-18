@@ -58,6 +58,27 @@ sem_data <- results_filtered %>%
                 numerical_larval_treatment, numerical_pupal_treatment,
                 maternalID) %>%
   filter(!is.na(egg_mean_1A))
+
+#to do some sense checks on the model predictions
+#get the mean clutch size from warm and hot treatments
+results_warm <- sem_data %>%
+  filter(numerical_larval_treatment == 12.76)
+mean(results_warm$clutch_size)
+#109
+
+
+results_hot <- sem_data %>%
+  filter(numerical_larval_treatment == 13.89)
+mean(results_hot$clutch_size)
+#138
+
+#the total effect of larval treatment on clutch size is 0.22
+#exp(0.22) = 1.246077
+#this means for every 1 degree of warming the moths lay ~25% more eggs, mediated through female mass
+#from warm to hot there is 13.89 - 12.76 = 1.13 degrees of warming
+#109 x 1.13 x 1.246077 = 153
+#109 x 1.246077 = 135
+#these estimates are pretty close to what we actually saw in the hot treatment
 ```
 
 fitting the psem model
@@ -78,6 +99,8 @@ sem_model <- psem(
   clutch_size %~~% egg_mean_1A   # this adds the correlated residual
 )
 
+#check model assumptions
+#plot(y_model)
 
 # Summary with standardized coefficients
 summary(sem_model, standardize = "scale",  conserve = TRUE) 
@@ -87,6 +110,7 @@ coefs(sem_model, standardize = "scale", standardize.type = "Menard.OE")
 
 # Plot standardized SEM
 plot(sem_model, show = "std", digits = 2)
+
 
 ```
 
@@ -125,9 +149,9 @@ print(standardised_effects)
 
 raw_effects <- readRDS("~/University stuff/Year 4/results/R project/data/clean data/raw_effects.rds")
 
-
 summary(raw_effects)
 
+#
 
 ```
 
@@ -145,7 +169,7 @@ sem.boot <- readRDS("~/University stuff/Year 4/results/R project/data/clean data
 
 #use the bootstrap estimates to calculate effects and confidence intervals
 sem.eff <- semEff(sem.boot)
-summary(sem.eff)
+#summary(sem.eff)
 ```
 
 
@@ -274,9 +298,9 @@ df_plot <- rbind(
 #now plot all the effects together in one plot
 ggplot() +
   # raw data
-  geom_point(data = sem_data,
-           aes(x = numerical_larval_treatment, y = clutch_size),
-            alpha = 0.8) +
+  #geom_point(data = sem_data,
+          #aes(x = numerical_larval_treatment, y = clutch_size),
+           # alpha = 0.8) +
 
   # confidence ribbons
   geom_ribbon(data = df_plot,
@@ -294,6 +318,10 @@ ggplot() +
     colour = "Effect",
     fill = "Effect"
   ) +
+   geom_point(aes(x = 12.76, y = 109),
+             shape = 8, size = 4, colour = "black") +
+    geom_point(aes(x = 13.89, y = 138),
+             shape = 8, size = 4, colour = "black") +
   theme_bw() 
 ```
 

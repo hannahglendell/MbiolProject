@@ -10,6 +10,7 @@ library(tidyverse)
 library(lme4)
 library(ggdist)
 library(patchwork)
+library(ggsignif)
 ```
 
 EGG SIZE 
@@ -77,9 +78,22 @@ larval_temp_ambient <- ggplot(
     alpha = 0.3,
     width = 0.7,
     outlier.shape = NA
-  )
+  ) 
 
 larval_temp_ambient
+
+#add significance stars, using values from model
+larval_temp_ambient +
+  geom_signif(
+    comparisons = comparisons,
+    annotations = c("**", "**", "***"),
+    y_position = c(0.24, 0.245, 0.25),
+    textsize = 5,
+     vjust = 0.56,
+    tip_length = 0.01
+  )
+
+
 
 
 #convert the pupal temperatures to factors so they plot in the correct order
