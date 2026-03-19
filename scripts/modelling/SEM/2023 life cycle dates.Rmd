@@ -80,7 +80,7 @@ mean(acquisition_period$plus2.5)
 
 ```{r}
 #RESOURCE ALLOCATION PERIOD
-#filter for the resource allocation period - between the 19th april and the 25th may
+#filter for the resource allocation period - between the 25th may 2025  and the 8th january 2026 
 allocation_period <- incubator_treatments %>%
   filter(date >= as.Date("2025-05-25") & date <= as.Date("2026-01-08"))
 

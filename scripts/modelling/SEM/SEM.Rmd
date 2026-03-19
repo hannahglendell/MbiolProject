@@ -30,14 +30,14 @@ results_filtered <- results %>%
     larval_treatment %in% c("warm", "hot"),
     pupal_treatment != "ambient", clutch_size != 0) %>%
   mutate(numerical_pupal_treatment = case_when(
-    pupal_treatment == "cool"  ~ 10.07,
-    pupal_treatment == "mean"  ~  12.08,
-    pupal_treatment == "warm"  ~  14.08,
-    pupal_treatment == "hot"   ~  15.54,
+    pupal_treatment == "cool"  ~ 10.26702,
+    pupal_treatment == "mean"  ~  12.23952,
+    pupal_treatment == "warm"  ~  14.2079,
+    pupal_treatment == "hot"   ~  15.523,
   )) %>% 
   mutate(numerical_larval_treatment = case_when(
-    larval_treatment == "warm"  ~  12.76,
-    larval_treatment == "hot"   ~  13.89,
+    larval_treatment == "warm"  ~  11.35602,
+    larval_treatment == "hot"   ~  12.523,
   )) %>%
   mutate(weight_mg = weight * 1000) %>%
   mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE)) %>%
@@ -62,15 +62,15 @@ sem_data <- results_filtered %>%
 #to do some sense checks on the model predictions
 #get the mean clutch size from warm and hot treatments
 results_warm <- sem_data %>%
-  filter(numerical_larval_treatment == 12.76)
+  filter(numerical_larval_treatment == 11.35602)
 mean(results_warm$clutch_size)
 #109
 
 
 results_hot <- sem_data %>%
-  filter(numerical_larval_treatment == 13.89)
+  filter(numerical_larval_treatment == 12.523)
 mean(results_hot$clutch_size)
-#138
+#139
 
 #the total effect of larval treatment on clutch size is 0.22
 #exp(0.22) = 1.246077
@@ -100,7 +100,7 @@ sem_model <- psem(
 )
 
 #check model assumptions
-#plot(y_model)
+plot(y_model)
 
 # Summary with standardized coefficients
 summary(sem_model, standardize = "scale",  conserve = TRUE) 
@@ -118,7 +118,7 @@ plot(sem_model, show = "std", digits = 2)
 ```{r}
 #use the semEff package to get standardised effects and confidence intervals
 #set.seed(123)
-#standardised_effects <- semEff(sem_model,R = 1000, ran.eff = "maternalID")
+#standardised_effects <- semEff(sem_model,R = 10000, ran.eff = "maternalID")
 
 standardised_effects <- readRDS("~/University stuff/Year 4/results/R project/data/clean data/standardised_effects.rds")
 
@@ -130,7 +130,7 @@ print(standardised_effects)
 #save the standardised effects so I don't have to re-run the bootstrap every time
 #saveRDS(
 # standardised_effects,
- # file = here("data", "clean data", "standardised_effects.rds")
+ #file = here("data", "clean data", "standardised_effects.rds")
 #)
 ```
 
@@ -140,8 +140,7 @@ print(standardised_effects)
 #to get unstandardised (raw) coefficients
 #set.seed(123)
 
-#effects <- bootEff(sem_model, R = 1000, ran.eff = "maternalID", incl.raw = TRUE) 
-
+#effects <- bootEff(sem_model, R = 10000, ran.eff = "maternalID", incl.raw = TRUE) 
 #raw_effects <- semEff(effects, use.raw = TRUE)
 
 #saveRDS(raw_effects, file = here("data", "clean data", "raw_effects.rds"))
@@ -158,7 +157,7 @@ summary(raw_effects)
 now I want to generate model predictions so that I can plot them
 ```{r}
 #bootstrap estimates for the model
-#sem.boot <- bootEff(sem_model, R = 1000, seed = 123, ran.eff = "maternalID")
+#sem.boot <- bootEff(sem_model, R = 10000, seed = 123, ran.eff = "maternalID")
 
 #save this so i don't have to re-run this bootstrap every single time
 #saveRDS(sem.boot, file = here("data", "clean data", "sem.boot.rds"))
@@ -318,9 +317,9 @@ ggplot() +
     colour = "Effect",
     fill = "Effect"
   ) +
-   geom_point(aes(x = 12.76, y = 109),
+   geom_point(aes(x = 11.35602, y = 109),
              shape = 8, size = 4, colour = "black") +
-    geom_point(aes(x = 13.89, y = 138),
+    geom_point(aes(x = 12.523, y = 139),
              shape = 8, size = 4, colour = "black") +
   theme_bw() 
 ```

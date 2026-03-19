@@ -189,7 +189,7 @@ ambient_temp_resource_allocation <- ggplot() +
             size = 1.2, alpha = 0.9) +
   # Vertical line for adult emergence
   geom_vline(xintercept = as.Date("2025-11-29"), linetype = "dashed", size = 0.8, alpha = 0.8) +
-  annotate("text", x = as.Date("2025-11-29"), y = max(allocation_period_treatments$mean_temperature) + 1,
+  annotate("text", x = as.Date("2025-11-29"), y = max(allocation_period_treatments$mean_temperature) + 0.1,
            label = "adult emergence", angle = 90, vjust = -0.5) +
   scale_color_manual(
     values = c(
@@ -209,7 +209,7 @@ ambient_temp_resource_allocation <- ggplot() +
     name = "Treatment"
   ) +
   scale_x_date(
-    date_labels = "%b %d",        # month and day
+    date_labels = "%b",        # month and day
     date_breaks = "1 month",       # weekly breaks for clarity
     expand = expansion(mult = c(0.01, 0.01))
   ) +
@@ -217,7 +217,7 @@ ambient_temp_resource_allocation <- ggplot() +
     x = "",
     y = "Mean daily temperature (°C)",
     title = "Ambient temperature during resource allocation") +
-  theme_minimal() +
+  theme_bw() +
   theme(
     legend.position = "top",
     legend.direction = "horizontal",
@@ -289,7 +289,7 @@ ambient_temp_resource_acquisition <- ggplot() +
     y = "Mean daily temperature (°C)",
     title = "Ambient temperature during resource acquisition"
   ) +
-  theme_minimal() +
+  theme_bw() +
   theme(
     legend.position = "top",
     legend.direction = "horizontal",
