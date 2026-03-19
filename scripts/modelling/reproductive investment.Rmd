@@ -22,11 +22,11 @@ results <- results %>%
 hist(results$reproductive_investment)
 #really skewed data
 
-#try a log transformation
+#try a log transformation - doesn't make it normally distributed
 results$reproductive_investment_log <- log(results$reproductive_investment)
 hist(results$reproductive_investment_log)
 
-#try a sqaure root transformation
+#try a sqaure root transformation - doesn't make it normally distributed
 results$reproductive_investment_sqrt<- sqrt(results$reproductive_investment)
 hist(results$reproductive_investment_sqrt)
 
@@ -124,5 +124,30 @@ plot <- ggplot(
 plot 
 
 
+```
+```{r}
+results_filtered <- results %>%
+  filter(larval_treatment != "ambient") %>%
+  filter(larval_treatment != "wild") %>%
+  filter(reproductive_investment != 0)
+  
+
+lm1 <- lm(reproductive_investment ~ larval_treatment, data = results_filtered)
+summary(lm1)
+plot(lm1)
+#residuals are highly heteroscedastic
+
+
+
+lm2 <- lm(reproductive_investment_log ~ larval_treatment, data = results_filtered)
+summary(lm2)
+plot(lm2)
+#now the residuals vs fitted are better but the q-q plot is really bad
+
+
+lm3 <- lm(reproductive_investment_sqrt ~ larval_treatment, data = results_filtered)
+summary(lm3)
+plot(lm3)
+#here the residuals are really heteroscedastic again
 ```
 

@@ -102,6 +102,10 @@ sem_model <- psem(
 #check model assumptions
 plot(y_model)
 
+plot(m_model)
+
+plot(x_model)
+
 # Summary with standardized coefficients
 summary(sem_model, standardize = "scale",  conserve = TRUE) 
 
