@@ -115,7 +115,8 @@ coefs(sem_model, standardize = "scale", standardize.type = "Menard.OE")
 # Plot standardized SEM
 plot(sem_model, show = "std", digits = 2)
 
-
+library(rsq)
+rsq.partial(y_model)
 ```
 
 

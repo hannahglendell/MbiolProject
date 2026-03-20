@@ -6,7 +6,7 @@ output: html_document
 ```{r}
 library(here)
 library(tidyverse)
-
+library(lme4)
 ```
 
 
@@ -149,5 +149,21 @@ lm3 <- lm(reproductive_investment_sqrt ~ larval_treatment, data = results_filter
 summary(lm3)
 plot(lm3)
 #here the residuals are really heteroscedastic again
+
+lm4 <- lm4 <- lm(reproductive_investment ~ larval_treatment + weight, data = results_filtered)
+summary(lm4)
+plot(lm4)
+#the residuals are really heteroscedastic again
+
+library(ggeffects)
+
+pred <- ggpredict(lm4, terms = c("weight", "larval_treatment"))
+
+plot(pred)
+
+ggplot(results_filtered, aes(x = weight, y = clutch_size, color = larval_treatment)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = TRUE)
+
 ```
 
