@@ -12,15 +12,18 @@ library(lme4)
 ```
 working on the raw egg size measurements for each individual egg
 
-AMBIENT OR WILD LARVAL TEMPERATURE
+AMBIENT, WARM AND HOT LARVAL TEMPERATURE
 ```{r}
 raw_egg_sizes <- read.csv(here("data", "clean data", "raw egg sizes.csv"))
 
 raw_egg_sizes <- raw_egg_sizes %>%
-  mutate(maternalID = sub("^[^.]*\\.[^.]*\\.([^_]+)_.*$", "\\1", adultID))
+  mutate(grandmotherID = sub("^[^.]*\\.[^.]*\\.([^_]+)_.*$", "\\1", adultID))
 
 #make maternal ID a factor
-raw_egg_sizes$maternalID <- as.factor(raw_egg_sizes$maternalID)
+raw_egg_sizes$grandmotherID <- as.factor(raw_egg_sizes$grandmotherID)
+
+#make clutchID a factor
+raw_egg_sizes$motherID <- as.factor(raw_egg_sizes$clutchID)
 
 #convert the pupal temperatures to factors so they plot in the correct order
 raw_egg_sizes$pupal_treatment <- factor(raw_egg_sizes$pupal_treatment,
@@ -30,34 +33,23 @@ raw_egg_sizes$pupal_treatment <- factor(raw_egg_sizes$pupal_treatment,
 raw_egg_sizes$larval_treatment <- factor(raw_egg_sizes$larval_treatment,
                              levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
 
+#mean and SD of all egg sizes
+summary(raw_egg_sizes$egg_mean_1A)
+sd(raw_egg_sizes$egg_mean_1A)
 
 
-#looking just at ambient and wild  larval temperature.
+#looking just at ambient, warm and hot larval temperature - need to remove wild because they don't have weight, or maternal ID or clutchID
 egg_sizes_ambient_larval <- raw_egg_sizes %>%
   mutate(larval_treatment = case_when(pupal_treatment == "wild" ~ "wild", TRUE ~ larval_treatment)) %>%
-  filter(larval_treatment %in% c("wild", "ambient")) %>%
-  mutate(numerical_pupal_treatment = case_when(
-    pupal_treatment == "cool"  ~ -1.5,
-    pupal_treatment == "mean"  ~  0.0,
-    pupal_treatment == "warm"  ~  1.5,
-    pupal_treatment == "hot"   ~  2.5,
-    TRUE ~ NA_real_
-  )) %>%
-  mutate(numerical_larval_treatment = case_when(
-    larval_treatment == "warm"  ~  1.5,
-    larval_treatment == "hot"   ~  2.5,
-    TRUE ~ NA_real_
-  )) %>%
+  filter(larval_treatment %in% c("ambient", "warm", "hot")) %>%
   mutate(weight_mg = weight * 1000) %>%
   mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE))
 
-
+#convert larval treatment to an ordered factor
 egg_sizes_ambient_larval <- egg_sizes_ambient_larval %>%
   mutate(
-    larval_treatment = factor(larval_treatment, levels = c("wild", "ambient")))
+    larval_treatment = factor(larval_treatment, levels = c("ambient", "warm", "hot")))
 
-summary(raw_egg_sizes$egg_mean_1A)
-sd(raw_egg_sizes$egg_mean_1A)
 ```
 
 ```{r}
@@ -72,43 +64,21 @@ ggplot(egg_sizes_ambient_larval, aes(x = area)) +
 
 
 ```{r}
-lm0 <- lm(area ~ larval_treatment, data = egg_sizes_ambient_larval)
-summary(lm0)
-AIC(lm0)
-#-7186
-##no significant difference between wild and ambient
-
-
-lm1 <- lm(area ~ pupal_treatment, data = egg_sizes_ambient_larval)
-summary(lm1)
-AIC(lm1)
-#pupal treatment does affect egg size, compared to ambient
-#-7251
-
-lm2 <- lm(area ~ pupal_treatment + weight_mg_centered, data = egg_sizes_ambient_larval)
-summary(lm2)
-AIC(lm2)
-#so weight does not affect egg size - remove from model
-#-3901
-
-lm3 <- lmer(area ~ pupal_treatment + (1|clutch_ID), data = egg_sizes_ambient_larval )
-summary(lm3)
-AIC(lm3)
-#this is alower AIC so including clutch_ID makes the model better
-#-7584
-
-lm4 <- lmer(area ~ pupal_treatment + (1|clutch_ID) + (1|maternalID), data = egg_sizes_ambient_larval )
+lm4 <- lmer(area ~ larval_treatment * pupal_treatment + (1|grandmotherID/motherID) + weight_mg, data = egg_sizes_ambient_larval )
 summary(lm4)
-AIC(lm4)
+#confint(lm4)
+#AIC(lm4)
 #-7589
-confint(lm4)
+#confint(lm4)
 #this has a lower AIC again so including maternalID as a random effect makes the model better.
 
+#vcov(lm4)
 
-
+#do i need to get p-values for this mixed model?
 ```
 
 ```{r}
+#pairwise comparisons
 library(emmeans)
 
 #estimates marginal means for the pupal treatments, using lm6
@@ -120,47 +90,31 @@ pairs(emm)
 
 #significant difference between ambient-mean, ambient-warm, and ambient-hot.
 ```
-WARM AND HOT LARVAL TREATMENT
+
 
 ```{r}
-#looking just at ambient larval temperature.
-egg_sizes_warmhot_larval <- raw_egg_sizes %>%
-  filter(larval_treatment %in% c("warm", "hot")) %>%
-  mutate(weight_mg = weight * 1000) %>%
-  mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE))
+#library(ggeffects)
 
+temp_cols <- c(
+  ambient = "#484A4C",
+  cool    = "#76C0CC",
+  mean    = "#F9CA0F",
+  warm    = "#E87A36",
+  hot     = "#AF0808")
 
-egg_sizes_warmhot_larval <- egg_sizes_warmhot_larval %>%
-  mutate(
-    larval_treatment = factor(larval_treatment, levels = c("warm", "hot")))
-```
+pred <- ggpredict(lm4, terms = c("pupal_treatment", "larval_treatment"))
 
-```{r}
-
-lm1 <- lm(area ~larval_treatment, data = egg_sizes_warmhot_larval )
-summary(lm1)
-AIC(lm1)
-#larval treatment not significant
-
-lm2 <- lm(area ~ pupal_treatment, data = egg_sizes_warmhot_larval )
-summary(lm2)
-AIC(lm2)
-#pupal treatment significant
-
-lm3 <- lmer(area ~ pupal_treatment + (1|clutch_ID) + (1|maternalID), data = egg_sizes_warmhot_larval )
-summary(lm3)
-AIC(lm3)
-
+plot(pred) +
+  labs(y = "Predicted egg area",
+       x = " Resource allocation temperature",
+       colour = " Resource acquisition temperature") +
+  scale_colour_manual(values = temp_cols) +
+  theme_bw()
 
 ```
 ```{r}
-#estimates marginal means for the pupal treatments, using lm6
-emm <- emmeans(lm3, ~ pupal_treatment)
-emm
 
-#pairwise comparisons
-pairs(emm)
 
-#significant difference between ambient-mean, ambient-warm, and ambient-hot.
+
 ```
 
