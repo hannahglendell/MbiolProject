@@ -9,6 +9,7 @@ library(ggplot2)
 library(tidyverse)
 library(lme4)
 library(ggdist)
+library(patchwork)
 ```
 
 
@@ -40,67 +41,61 @@ temp_cols <- c(
 wild_moths_trade_off <- 
 ggplot(
   results %>% filter(pupal_treatment == "wild"),
-  aes(x = egg_mean_1A, y = clutch_size, fill = pupal_treatment)) +
-  geom_point() +
+  aes(x = egg_mean_1A, y = clutch_size)) +
+  geom_point( size = 4) +
+coord_cartesian(xlim = c(0.16, 0.24), ylim = c(0, 400)) +
     labs(
+       title = "A) Wild moths",
       x = expression(Mean~egg~area~(mm^2)),
       y = "clutch size (number of eggs)") + 
-  theme_bw()
+  theme_bw() + 
+    theme(
+    text = element_text(size = 18),            # increases all text
+    axis.title = element_text(size = 20),      # axis titles bigger
+    axis.text = element_text(size = 18),       # axis tick labels bigger
+    legend.text = element_text(size = 18),     # legend text bigger
+    legend.title = element_text(size = 20)
+    )    # legend title bigger
 
 wild_moths_trade_off
+
+
+
 ```
 
 
 
 
 ```{r}
-trade_off_plot <- 
-ggplot(
-  results %>% filter(pupal_treatment != "wild"),
-  aes(x = egg_mean_1A, y = clutch_size, fill = pupal_treatment)) +
-  geom_point(aes(color = pupal_treatment), alpha = 1.5) +
-  scale_color_manual(values = temp_cols) +
-  facet_wrap(~ larval_treatment + pupal_treatment) +
-    labs(
-      x = expression(Mean~egg~area~(mm^2)),
-      y = "clutch size") +
-  theme_bw()
-
-trade_off_plot
-
-ggsave(
-  here("figures", "trade_off_plot.png"),
-  plot = trade_off_plot,
-  width = 17,
-  height = 12,
-  dpi = 300
-)
-
-
-
-
-```
-
-```{r}
-ggplot(
+lab_moths_trade_off <- ggplot(
   results %>% filter(pupal_treatment != "wild"),
   aes(x = egg_mean_1A, y = clutch_size)) +
-  geom_point(aes(), alpha = 1.5) +
+  geom_point(size = 4) +
+coord_cartesian(xlim = c(0.16, 0.24), ylim = c(0, 400)) +
     labs(
+      title = "B) Laboratory moths",
       x = expression(Mean~egg~area~(mm^2)),
       y = "clutch size (number of eggs)") +
-  theme_bw()
+  theme_bw() + 
+    theme(
+    text = element_text(size = 18),            # increases all text
+    axis.title = element_text(size = 20),      # axis titles bigger
+    axis.text = element_text(size = 18),       # axis tick labels bigger
+    legend.text = element_text(size = 18),     # legend text bigger
+    legend.title = element_text(size = 20)     # legend title bigger
+  )
+
+lab_moths_trade_off
 
 
+trade_off_plot <- wild_moths_trade_off + lab_moths_trade_off
 
-ggplot(
-  results %>% filter(pupal_treatment != "wild"),
-  aes(x = egg_mean_1A, y = clutch_size, fill = larval_treatment)) +
-  geom_point(aes(color = larval_treatment), alpha = 1.5) +
-  scale_color_manual(values = temp_cols) +
-  facet_wrap(~ larval_treatment) +
-    labs(
-      x = expression(Mean~egg~area~(mm^2)),
-      y = "clutch size")
+ggsave(
+  here("figures", "trade off.png"),
+  plot = trade_off_plot,
+  width = 20,
+  height = 10,
+  dpi = 300
+)
 ```
 

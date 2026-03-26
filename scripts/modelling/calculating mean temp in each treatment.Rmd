@@ -14,10 +14,9 @@ library(lubridate)
 ```{r}
 ambient_temperatures <- read.csv(here("data", "clean data", "ambient temperatures.csv"))
 
-ambient_temperatures$datetime <- as.POSIXct(
-  ambient_temperatures$datetime,
-  tz = "UTC"
-)
+ambient_temperatures$datetime <- ymd_hms(ambient_temperatures$datetime, tz = "UTC")
+
+
 
 #filter the ambient temperatures for the whole period of resource acquisition and allocation
 ambient_temperatures <- ambient_temperatures %>%
@@ -40,6 +39,7 @@ incubator_treatments <- incubator_treatments %>%
     `minus1.5`   = as.numeric(`minus1.5`),
     `minus2.5`   = as.numeric(`minus2.5`)
   )
+
 #combine date 1 and date end into one date column
 incubator_treatments <- incubator_treatments %>%
   group_by(date_1, date_end, Hour_group) %>%
@@ -52,34 +52,34 @@ incubator_treatments <- incubator_treatments %>%
 #create datetime column
 incubator_treatments <- incubator_treatments %>%
   mutate(datetime = as.POSIXct(paste(date, Hour_group),
-                               format = "%Y-%m-%d %H",
-                               tz = "UTC"))
+                               format = "%Y-%m-%d %H", tz = "UTC"))
+
 #interpolate 2-hourly treatments into 1-hourly treatments
-incubator_treatments_hourly <- incubator_treatments %>%
-  ungroup() %>% 
-  complete(datetime = seq(min(datetime, na.rm = TRUE),
-                          max(datetime, na.rm = TRUE),
-                          by = "1 hour")) %>%
-  fill(everything(), .direction = "down")
+#incubator_treatments_hourly <- incubator_treatments %>%
+ # ungroup() %>% 
+ # complete(datetime = seq(min(datetime, na.rm = TRUE),
+                  #        max(datetime, na.rm = TRUE),
+  #                        by = "1 hour")) %>%
+  #fill(everything(), .direction = "down")
 
 #filter for the dates I want so the dataset doesn't get too big
 #incubator_treatments_hourly <- incubator_treatments_hourly %>%
   #filter(datetime >= as.Date("2025-04-11") & datetime <= as.Date("2025-12-29"))
 
-incubator_treatments_hourly <- incubator_treatments_hourly %>%
-  filter(
-    datetime >= as.POSIXct("2025-04-11 00:00:00", tz = "UTC"),
-    datetime <= as.POSIXct("2025-12-29 23:50:00", tz = "UTC")
+#incubator_treatments_hourly <- incubator_treatments_hourly %>%
+  #filter(
+  #  datetime >= as.POSIXct("2025-04-11 00:00:00", tz = "UTC"),
+ # #  datetime <= as.POSIXct("2025-12-29 23:50:00", tz = "UTC")
   )
 
 #interpolate to the minute increments that i want - so that it matches the ambient thermologger data.
-offsets <- c(0, 10, 15, 20, 30, 40, 45, 50)
+#offsets <- c(0, 10, 15, 20, 30, 40, 45, 50)
 
-incubator_treatments_expanded <- incubator_treatments_hourly %>%
-  uncount(length(offsets)) %>%
-  group_by(datetime) %>%
-  mutate(datetime = datetime + minutes(offsets[row_number()])) %>%
-  ungroup()
+#incubator_treatments_expanded <- incubator_treatments_hourly %>%
+#  uncount(length(offsets)) %>%
+#  group_by(datetime) %>%
+#  mutate(datetime = datetime + minutes(offsets[row_number()])) %>%
+#  ungroup()
 
 
 ```
@@ -87,8 +87,17 @@ incubator_treatments_expanded <- incubator_treatments_hourly %>%
 RESOURCE ACQUISITION
 ```{r}
 #dataset for period of resource alocation - using median pupation date and median emergence date
+#acquisition_ambient_temp <- ambient_temperatures %>%
+ # filter(datetime >= as.Date("2025-04-11") & datetime <= as.Date("2025-05-16"))
+
 acquisition_ambient_temp <- ambient_temperatures %>%
-  filter(datetime >= as.Date("2025-04-11") & datetime <= as.Date("2025-05-16"))
+  filter(datetime >= as.POSIXct("2025-04-11 00:00:00") &
+         datetime <= as.POSIXct("2025-05-16 23:59:59"))
+
+ggplot(acquisition_ambient_temp, aes(x = datetime, y = temperature)) +
+  geom_line()
+
+
 
 mean(acquisition_ambient_temp$temperature)
 #12.36966
@@ -97,8 +106,42 @@ sd(acquisition_ambient_temp$temperature)
 #4.394121
 
 
-acquisition_incubator_temp <- incubator_treatments_expanded %>%
-  filter(date >= as.Date("2025-04-11") & date <= as.Date("2025-05-16"))
+acquisition_incubator_temp <- incubator_treatments %>%
+  filter(datetime >= as.POSIXct("2025-04-11 00:00:00") &
+         datetime <= as.POSIXct("2025-05-16 23:59:59"))
+
+
+# Convert wide to long so we have treatment and mean_temperature columns
+plot_data_clean <- acquisition_incubator_temp %>%
+  pivot_longer(
+    cols = c(plus2.5, plus1.5, actual.mean, minus1.5),
+    names_to = "treatment",
+    values_to = "temperature") 
+ggplot(plot_data_clean, aes(x = datetime, y = temperature, color = treatment)) +
+  geom_line()
+
+
+ggplot() +
+    geom_line(data = plot_data_clean,
+            aes(x = datetime, y = temperature, colour = treatment),
+            alpha = 0.7,
+            linewidth = 1.0) +
+  scale_color_manual(
+    values = c(
+      "minus1.5" = "#76C0CC",
+      "actual.mean"   = "#F9CA0F",
+      "plus1.5"  = "#E87A36",
+      "plus2.5"  = "#AF0808")) +
+  geom_line(data = acquisition_ambient_temp,
+            aes(x = datetime, y = temperature),
+            colour = "black",
+            linewidth = 1.0,
+            alpha = 0.9) +
+
+  labs(x = "Time",
+       y = "Temperature",
+       colour = "Treatment") +
+  theme_bw()
 
 mean(acquisition_incubator_temp$minus1.5)
 #8.358796
@@ -127,8 +170,14 @@ sd(acquisition_incubator_temp$plus2.5)
 RESOURCE ALLOCATION
 ```{r}
 #dataset for period of resource acquisition - using median halfhatch date and median pupation date
+
 allocation_ambient_temp <- ambient_temperatures %>%
-  filter(datetime >= as.Date("2025-05-16") & datetime <= as.Date("2025-12-29"))
+  filter(datetime >= as.POSIXct("2025-05-16 00:00:00") &
+         datetime <= as.POSIXct("2025-12-29 23:59:59"))
+
+ggplot(allocation_ambient_temp, aes(x = datetime, y = temperature)) +
+  geom_line()
+
 
 mean(allocation_ambient_temp$temperature)
 #14.33971
@@ -137,8 +186,40 @@ sd(allocation_ambient_temp$temperature)
 #5.838307
 
 
-allocation_incubator_temp <- incubator_treatments_expanded %>%
-  filter(date >= as.Date("2025-05-16") & date <= as.Date("2025-12-29"))
+allocation_incubator_temp <- incubator_treatments %>%
+  filter(datetime >= as.POSIXct("2025-05-16 00:00:00") &
+         datetime <= as.POSIXct("2025-12-29 23:59:59"))
+
+
+# Convert wide to long so we have treatment and mean_temperature columns
+plot_data_clean <- allocation_incubator_temp %>%
+  pivot_longer(
+    cols = c(plus2.5, plus1.5, actual.mean, minus1.5),
+    names_to = "treatment",
+    values_to = "temperature") 
+ggplot(plot_data_clean, aes(x = datetime, y = temperature, color = treatment)) +
+  geom_line()
+
+
+ggplot() +
+  geom_line(data = plot_data_clean,
+            aes(x = datetime, y = temperature, colour = treatment),
+            alpha = 0.5,
+            linewidth = 0.1) +
+  scale_color_manual(
+    values = c(
+      "minus1.5" = "#76C0CC",
+      "actual.mean"   = "#F9CA0F",
+      "plus1.5"  = "#E87A36",
+      "plus2.5"  = "#AF0808")) +
+  geom_line(data = allocation_ambient_temp,
+            aes(x = datetime, y = temperature),
+            colour = "#484A4C",
+            linewidth = 0.1) +
+  labs(x = "Time",
+       y = "Temperature",
+       colour = "Treatment") +
+  theme_bw()
 
 mean(allocation_incubator_temp$minus1.5)
 #10.22277

@@ -4,7 +4,7 @@ output: html_document
 ---
 
 ```{r}
-library(ggplot2)
+library(ggplot2) 
 library(tidyverse)
 library(here)
 ```
@@ -33,6 +33,13 @@ daily_means <- ambient_temperatures %>%
 #now plot the daily mean temperature for ambient treatment
 ggplot(daily_means, aes(x = date, y = mean_temperature)) +
   geom_line()
+
+#plot the raw temperatures in ambient over time
+ambient_temperatures$datetime <- as.POSIXct(ambient_temperatures$datetime)
+
+ggplot(ambient_temperatures, aes(x = datetime, y = temperature)) +
+  geom_line()
+
 ```
 ```{r}
 #now i need to calculate the daily mean temperature for the temperature treatments
@@ -239,6 +246,7 @@ ggsave(
   dpi = 300
 )
 
+#calculate mean and standard deviation of daily mean temperature for all treatments
 
 mean(allocation_period_ambient$mean_temperature)
 #14.34
@@ -356,8 +364,8 @@ ggsave(
 
 mean(acquisition_period_ambient$mean_temperature)
 #12.37
-sd(allocation_period_ambient$mean_temperature)
-#5.26
+sd(acquisition_period_ambient$mean_temperature)
+#2.19
 
 acquisition_period_cool <- acquisition_period_treatments %>%
   filter(treatment == "minus1.5_mean")
