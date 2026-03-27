@@ -83,15 +83,20 @@ incubator_treatments <- incubator_treatments %>%
 
 
 
-cols_to_diff <- c("plus2.5", "plus1.5", "actual.mean", "minus1.5")
+incubator_treatments <- incubator_treatments %>%
+  ungroup()
+
 
 incubator_treatments <- incubator_treatments %>%
-  arrange(datetime) %>%   # make sure data is in chronological order
-  mutate(across(
-    all_of(cols_to_diff),
-    ~ . - lag(.),
-    .names = "temp_change_{.col}"
-  ))
+  arrange(datetime)
+
+incubator_treatments <- incubator_treatments %>%
+  mutate(
+    temp_change_plus2.5 = `plus2.5` - lag(`plus2.5`),
+    temp_change_plus1.5 = `plus1.5` - lag(`plus1.5`),
+    temp_change_actual.mean = `actual.mean` - lag(`actual.mean`),
+    temp_change_minus1.5 = `minus1.5` - lag(`minus1.5`)
+  )
 
 ```
 
@@ -104,6 +109,13 @@ RESOURCE ACQUISITION
 acquisition_ambient_temp <- ambient_temp_2hourly %>%
   filter(datetime >= as.POSIXct("2025-04-11 00:00:00") &
          datetime <= as.POSIXct("2025-05-16 23:59:59"))
+
+mean(acquisition_ambient_temp$temp_change, na.rm = TRUE)
+#0.019
+
+sd(acquisition_ambient_temp$temp_change, na.rm = TRUE)
+#2.11
+
 
 mean(acquisition_ambient_temp$mean_temperature)
 #12.38838
@@ -149,15 +161,15 @@ ggplot() +
        colour = "Treatment") +
   theme_bw()
 
-mean(acquisition_incubator_temp$minus1.5)
+mean(acquisition_incubator_temp$temp_change_minus1.5, na.rm = TRUE)
 #8.368837
-sd(acquisition_incubator_temp$minus1.5)
+sd(acquisition_incubator_temp$temp_change_minus1.5, na.rm = TRUE)
 #3.386495
 
 
 mean(acquisition_incubator_temp$actual.mean)
 #10.10372
-sd(acquisition_incubator_temp$actual.mean)
+sd(acquisition_incubator_temp$temp_change_actual.mean, na.rm = TRUE)
 #3.358597
 
 
