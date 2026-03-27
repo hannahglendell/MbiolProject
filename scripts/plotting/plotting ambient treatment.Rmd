@@ -13,6 +13,13 @@ library(here)
 ```{r}
 ambient_temperatures <- read.csv(here("data", "clean data", "ambient temperatures.csv"))
 
+#make datetime stored as datetime column
+ambient_temperatures$datetime <- parse_date_time(
+  ambient_temperatures$datetime,
+  orders = c("ymd HMS", "ymd"),
+  tz = "UTC"
+)
+
 ```
 
 ```{r}
@@ -35,8 +42,6 @@ ggplot(daily_means, aes(x = date, y = mean_temperature)) +
   geom_line()
 
 #plot the raw temperatures in ambient over time
-ambient_temperatures$datetime <- as.POSIXct(ambient_temperatures$datetime)
-
 ggplot(ambient_temperatures, aes(x = datetime, y = temperature)) +
   geom_line()
 
@@ -94,6 +99,7 @@ plot_data_clean <- daily_mean_treatments_long %>%
   mutate(treatment = factor(treatment, 
                             levels = c("minus1.5_mean", "actual_mean", "plus1.5_mean", "plus2.5_mean", "Ambient_mean")))
 
+#take off the last rows that have temperatures for january 2026
 plot_data_clean <- plot_data_clean %>%
   slice(1:1324)  # keeps rows 1 through 1324
 
@@ -189,15 +195,15 @@ ambient_temp_resource_allocation <- ggplot() +
   # Plot the mean temperature by treatment (thicker lines)
   geom_line(data = allocation_period_treatments, 
             aes(x = date, y = mean_temperature, color = treatment),
-            size = 1.1, alpha = 0.5) +
+            size = 1.5, alpha = 0.5) +
   # Overlay the daily mean temperature for ambient treatment
   geom_line(data = allocation_period_ambient, 
             aes(x = date, y = mean_temperature, color = treatment),
-            size = 1.2, alpha = 0.9) +
+            size = 1.8, alpha = 0.9) +
   # Vertical line for adult emergence
-  geom_vline(xintercept = as.Date("2025-11-29"), linetype = "dashed", size = 0.8, alpha = 0.8) +
+  geom_vline(xintercept = as.Date("2025-11-29"), linetype = "dashed", size = 1.0, alpha = 0.8) +
   annotate("text", x = as.Date("2025-11-29"), y = max(allocation_period_treatments$mean_temperature) + 0.1,
-           label = "adult emergence", angle = 90, vjust = -0.5) +
+           label = "adult emergence", angle = 90, vjust = -0.5, size = 6) +
   scale_color_manual(
     values = c(
       "minus1.5_mean" = "#76C0CC",
@@ -207,13 +213,13 @@ ambient_temp_resource_allocation <- ggplot() +
       "Ambient_mean"  = "black"
     ),
     labels = c(
-      "minus1.5_mean" = "cool",
-      "actual_mean"   = "mean",
-      "plus1.5_mean"  = "warm",
-      "plus2.5_mean"  = "hot",
-      "Ambient_mean"  = "ambient"
+      "minus1.5_mean" = "Cool",
+      "actual_mean"   = "Mean",
+      "plus1.5_mean"  = "Warm",
+      "plus2.5_mean"  = "Hot",
+      "Ambient_mean"  = "Ambient"
     ),
-    name = "Treatment"
+    name = "Treatment:"
   ) +
   scale_x_date(
     date_labels = "%b",        # month and day
@@ -223,17 +229,19 @@ ambient_temp_resource_allocation <- ggplot() +
   labs(
     x = "",
     y = "Mean daily temperature (°C)",
-    title = "Ambient temperature during resource allocation") +
+    title = "") +
   theme_bw() +
   theme(
-    legend.position = "top",
-    legend.direction = "horizontal",
-    text = element_text(size = 16),          # base size for all text
-    axis.title = element_text(size = 18),    # axis titles
-    axis.text = element_text(size = 16),     # tick labels
-    legend.title = element_text(size = 16),  # legend title
-    legend.text = element_text(size = 16),   # legend entries
-    plot.title = element_text(size = 20)
+    #legend.position = "bottom",
+    #legend.direction = "horizontal",
+    text = element_text(size = 18),          # base size for all text
+    axis.title = element_text(size = 20),    # axis titles
+    axis.text = element_text(size = 18),     # tick labels
+    legend.title = element_text(size = 18),  # legend title
+    legend.text = element_text(size = 18),   # legend entries
+    plot.title = element_text(size = 20),
+    legend.position = c(0.02, 0.02),          # near bottom-left
+  legend.justification = c("left", "bottom")
   )
 
 ambient_temp_resource_allocation
@@ -307,11 +315,11 @@ ambient_temp_resource_acquisition <- ggplot() +
   # Plot the mean temperature by treatment (thicker lines)
   geom_line(data = acquisition_period_treatments, 
             aes(x = date, y = mean_temperature, color = treatment),
-            size = 0.8, alpha = 0.5) +
+            size = 1.5, alpha = 0.5) +
   # Overlay the daily mean temperature for ambient treatment (dashed, thinner)
   geom_line(data = acquisition_period_ambient, 
             aes(x = date, y = mean_temperature, color = treatment),
-            size = 1.4) +
+            size = 1.8) +
   scale_color_manual(
     values = c(
       "minus1.5_mean" = "#76C0CC",
@@ -321,13 +329,13 @@ ambient_temp_resource_acquisition <- ggplot() +
       "Ambient_mean"  = "black"
     ),
     labels = c(
-      "minus1.5_mean" = "cool",
-      "actual_mean"   = "mean",
-      "plus1.5_mean"  = "warm",
-      "plus2.5_mean"  = "hot",
-      "Ambient_mean"  = "ambient"
+      "minus1.5_mean" = "Cool",
+      "actual_mean"   = "Mean",
+      "plus1.5_mean"  = "Warm",
+      "plus2.5_mean"  = "Hot",
+      "Ambient_mean"  = "Ambient"
     ),
-    name = "Treatment"
+    name = "Treatment:"
   ) +
   scale_x_date(
     date_labels = "%b %d",        # month and day
@@ -337,21 +345,34 @@ ambient_temp_resource_acquisition <- ggplot() +
   labs(
     x = "",
     y = "Mean daily temperature (°C)",
-    title = "Ambient temperature during resource acquisition"
+    title = ""
   ) +
   theme_bw() +
   theme(
-    legend.position = "top",
-    legend.direction = "horizontal",
-    text = element_text(size = 16),          # base size for all text
-    axis.title = element_text(size = 18),    # axis titles
-    axis.text = element_text(size = 16),     # tick labels
-    legend.title = element_text(size = 16),  # legend title
-    legend.text = element_text(size = 16),   # legend entries
-    plot.title = element_text(size = 20)
+    #legend.position = "bottom",
+    #legend.direction = "horizontal",
+    text = element_text(size = 18),          # base size for all text
+    axis.title = element_text(size = 20),    # axis titles
+    axis.text = element_text(size = 18),     # tick labels
+    legend.title = element_text(size = 18),  # legend title
+    legend.text = element_text(size = 18),   # legend entries
+    plot.title = element_text(size = 20),
+    legend.position = c(0.02, 0.98),           # near top-left
+  legend.justification = c("left", "top")
   )
 
 ambient_temp_resource_acquisition
+
+ambient_temp_plot <- ambient_temp_resource_acquisition + ambient_temp_resource_allocation
+
+ggsave(
+  here("figures", "ambient temp plot.png"),
+  plot = ambient_temp_plot,
+  width = 20,
+  height = 10,
+  dpi = 300
+)
+
 
 ggsave(
   here("figures", "Ambient temperature during resource acquisition.png"),
