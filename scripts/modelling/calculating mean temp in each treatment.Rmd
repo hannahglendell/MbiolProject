@@ -49,10 +49,11 @@ ambient_temp_2hourly <- ambient_temperatures %>%
 ambient_temp_2hourly <- ambient_temp_2hourly %>%
   arrange(datetime) %>%   # make sure it's in chronological order
   mutate(temp_change = mean_temperature - lag(mean_temperature))
+```
 
 
 
-
+```{r}
 incubator_treatments <- read.csv(here("data", "raw data", "mbiols_daily_temperature_data.csv"))
 
 #to make sure dates are stored as dates, and temperatures as numbers
@@ -129,59 +130,29 @@ acquisition_incubator_temp <- incubator_treatments %>%
          datetime <= as.POSIXct("2025-05-16 23:59:59"))
 
 
-# Convert wide to long so we have treatment and mean_temperature columns
-plot_data_clean <- acquisition_incubator_temp %>%
-  pivot_longer(
-    cols = c(plus2.5, plus1.5, actual.mean, minus1.5),
-    names_to = "treatment",
-    values_to = "temperature") 
-ggplot(plot_data_clean, aes(x = datetime, y = temperature, color = treatment)) +
-  geom_line()
 
-
-ggplot() +
-    geom_line(data = plot_data_clean,
-            aes(x = datetime, y = temperature, colour = treatment),
-            alpha = 0.7,
-            linewidth = 1.0) +
-  scale_color_manual(
-    values = c(
-      "minus1.5" = "#76C0CC",
-      "actual.mean"   = "#F9CA0F",
-      "plus1.5"  = "#E87A36",
-      "plus2.5"  = "#AF0808")) +
-  geom_line(data = acquisition_ambient_temp,
-            aes(x = datetime, y = temperature),
-            colour = "black",
-            linewidth = 1.0,
-            alpha = 0.9) +
-
-  labs(x = "Time",
-       y = "Temperature",
-       colour = "Treatment") +
-  theme_bw()
 
 mean(acquisition_incubator_temp$temp_change_minus1.5, na.rm = TRUE)
-#8.368837
+#0.009
 sd(acquisition_incubator_temp$temp_change_minus1.5, na.rm = TRUE)
-#3.386495
+#1.653995
 
 
 mean(acquisition_incubator_temp$actual.mean)
 #10.10372
 sd(acquisition_incubator_temp$temp_change_actual.mean, na.rm = TRUE)
-#3.358597
+#1.654251
 
 
 mean(acquisition_incubator_temp$plus1.5)
 #11.83628
-sd(acquisition_incubator_temp$plus1.5)
-#3.32678
+sd(acquisition_incubator_temp$temp_change_plus1.5)
+#1.653859
 
 mean(acquisition_incubator_temp$plus2.5)
 #12.98884
-sd(acquisition_incubator_temp$plus2.5)
-#3.311922
+sd(acquisition_incubator_temp$temp_change_plus2.5)
+#1.655022
 
 ```
 
@@ -200,8 +171,8 @@ ggplot(allocation_ambient_temp, aes(x = datetime, y = temperature)) +
 mean(allocation_ambient_temp$mean_temperature)
 #14.34711
 
-sd(allocation_ambient_temp$mean_temperature)
-#5.842382
+sd(allocation_ambient_temp$temp_change)
+#1.473914
 
 
 allocation_incubator_temp <- incubator_treatments %>%
@@ -209,39 +180,11 @@ allocation_incubator_temp <- incubator_treatments %>%
          datetime <= as.POSIXct("2025-12-29 23:59:59"))
 
 
-# Convert wide to long so we have treatment and mean_temperature columns
-plot_data_clean <- allocation_incubator_temp %>%
-  pivot_longer(
-    cols = c(plus2.5, plus1.5, actual.mean, minus1.5),
-    names_to = "treatment",
-    values_to = "temperature") 
-ggplot(plot_data_clean, aes(x = datetime, y = temperature, color = treatment)) +
-  geom_line()
 
-
-ggplot() +
-  geom_line(data = plot_data_clean,
-            aes(x = datetime, y = temperature, colour = treatment),
-            alpha = 0.5,
-            linewidth = 0.1) +
-  scale_color_manual(
-    values = c(
-      "minus1.5" = "#76C0CC",
-      "actual.mean"   = "#F9CA0F",
-      "plus1.5"  = "#E87A36",
-      "plus2.5"  = "#AF0808")) +
-  geom_line(data = allocation_ambient_temp,
-            aes(x = datetime, y = temperature),
-            colour = "#484A4C",
-            linewidth = 0.1) +
-  labs(x = "Time",
-       y = "Temperature",
-       colour = "Treatment") +
-  theme_bw()
 
 mean(allocation_incubator_temp$minus1.5)
 #10.22277
-sd(allocation_incubator_temp$minus1.5)
+sd(allocation_incubator_temp$temp_change_minus1.5)
 #5.568563
 
 
