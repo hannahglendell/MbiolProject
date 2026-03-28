@@ -10,9 +10,10 @@ library(broom)
 library(MASS)
 library(here)
 library(dplyr)
+library(car)
 ```
 
-INCUBATOR MOTHS - AMBIENT, WARM AND HOT LARVAL TEMP
+LABORATORY-RAISED MOTHS
 ```{r}
 results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
 
@@ -43,8 +44,23 @@ summary(lm2)
 AIC(lm2)
 #AIC = -1465
 
+confint(lm2)
+
+
+#likelihood ratio for both interaction terms
+lm2_no_clutch_size <- update(lm2, . ~ . - clutch_size:larval_treatment - clutch_size:pupal_treatment)
+anova(lm2, lm2_no_clutch_size)
+
+#likelihood ratio test for female mass
+lm2_no_weight <- update(lm2, . ~ . - larval_treatment - weight_mg)
+anova(lm2, lm2_no_weight)
+#female mass not a signficant predictor of egg size
+
+#maternal ID explains how much of the variance
+4.77e-05/(4.77e-05 + 1.15e-04)
+#maternal ID explains 29% of the variance in egg size
+
 #checks for multicollinearity
-library(car)
 vif(lm2)
 
 ```
@@ -61,7 +77,9 @@ results_wild <- results %>%
 #cant include pupal treament, larval treatment, weight (i didn't weigh them, oops), or maternalID - I don't have any of this information
 lm1 <- lm(egg_mean_1A ~ clutch_size, data = results_wild)
 summary(lm1)
-#non significant effect
+#non significant effect of clutch size on egg size
+
+confint(lm1)
 ```
 
 

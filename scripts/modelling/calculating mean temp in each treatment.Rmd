@@ -20,35 +20,41 @@ ambient_temperatures$datetime <- parse_date_time(
   tz = "UTC"
 )
 
-
+#filter for one day earlier so can have delta T for all days
 #filter the ambient temperatures for the whole period of resource acquisition and allocation
 ambient_temperatures <- ambient_temperatures %>%
   filter(
-    datetime >= as.POSIXct("2025-04-11 00:00:00", tz = "UTC"),
+    datetime >= as.POSIXct("2025-03-11 00:00:00", tz = "UTC"),
     datetime <= as.POSIXct("2025-12-29 23:50:00", tz = "UTC")
   )
 
-#get the ambient temp at 2 hourly intervals like the incubator treatments
-ambient_temp_2hourly <- ambient_temperatures %>%
-  mutate(
-    # round down the datetime to the previous even hour
-    hour_bin = floor(hour(datetime) / 2) * 2,
-    # define the bin ending at the *even hour*
-    datetime = as.POSIXct(
-      paste(as.Date(datetime), sprintf("%02d:00:00", hour_bin + 2)), 
-      tz = "UTC"
-    )
-  ) %>%
-  # only keep bins for even hours (optional; already ensured by +2)
-  filter(hour_bin %% 2 == 0) %>%
-  group_by(datetime) %>%
-  summarise(mean_temperature = mean(temperature, na.rm = TRUE)) %>%
-  ungroup()
+#to get the mean temp in ambient during the acquisition period
+ambient_acquisition_period <- ambient_temperatures %>%
+  filter(datetime >= as.POSIXct("2025-04-11 00:00:00") &
+         datetime <= as.POSIXct("2025-05-16 23:59:59"))
+mean(ambient_acquisition_period$temperature)
+#12.36538
 
-#calculate the change int temperature from one timestep to the previous timestep
-ambient_temp_2hourly <- ambient_temp_2hourly %>%
-  arrange(datetime) %>%   # make sure it's in chronological order
-  mutate(temp_change = mean_temperature - lag(mean_temperature))
+
+#to get the mean temp in ambient during the allocation period
+ambient_allocation_period <- ambient_temperatures %>%
+  filter(datetime >= as.POSIXct("2025-05-16 00:00:00") &
+         datetime <= as.POSIXct("2025-12-29 23:59:59"))
+mean(ambient_allocation_period$temperature)
+#14.34
+
+
+#get the daily mean temperature
+ambient_daily_means <- ambient_temperatures %>%
+  mutate(date = as.Date(datetime)) %>%   # extract date
+  group_by(date) %>%
+  summarise(mean_temp = mean(temperature, na.rm = TRUE))
+
+
+#calculate the change in daily mean temperature from one day to the next
+ambient_daily_means <- ambient_daily_means %>%
+  arrange(date) %>%   # make sure it's in chronological order
+  mutate(temp_change = mean_temp - lag(mean_temp))
 ```
 
 
@@ -77,21 +83,56 @@ incubator_treatments <- incubator_treatments %>%
     values_to = "date") %>%
   dplyr::select(-date_type) 
 
-#create datetime column
-incubator_treatments <- incubator_treatments %>%
-  mutate(datetime = as.POSIXct(paste(date, Hour_group),
-                               format = "%Y-%m-%d %H", tz = "UTC"))
 
 
 
-incubator_treatments <- incubator_treatments %>%
-  ungroup()
+#get the mean in each incubator treatment during acquisition period
+acquisition_incubator_period <- incubator_treatments %>%
+  filter(date >= as.Date("2025-04-11") & date <= as.Date("2025-05-16"))
+
+mean(acquisition_incubator_period$minus1.5)
+#8.37
+
+mean(acquisition_incubator_period$actual.mean)
+#10.10
+
+mean(acquisition_incubator_period$plus1.5)
+#11.84
+
+mean(acquisition_incubator_period$plus2.5)
+#12.99
 
 
-incubator_treatments <- incubator_treatments %>%
-  arrange(datetime)
+#get the mean of each incubator treatment duirng the allocation period
+allocation_incubator_period <- incubator_treatments %>%
+  filter(date >= as.Date("2025-05-16") & date <= as.Date("2025-12-29"))
 
-incubator_treatments <- incubator_treatments %>%
+mean(allocation_incubator_period$minus1.5)
+#10.22
+
+mean(allocation_incubator_period$actual.mean)
+#12.21
+
+mean(allocation_incubator_period$plus1.5)
+#14.19
+
+mean(allocation_incubator_period$plus2.5)
+#15.51
+
+
+
+
+
+#calcluate the daily mean temp for each incubator treatment
+incubator_daily_means <- incubator_treatments %>%
+  group_by(date) %>%
+  summarise(
+    across(c(plus2.5, plus1.5, actual.mean, minus1.5),
+           ~ mean(.x, na.rm = TRUE))
+  )
+
+
+incubator_daily_means <- incubator_daily_means %>%
   mutate(
     temp_change_plus2.5 = `plus2.5` - lag(`plus2.5`),
     temp_change_plus1.5 = `plus1.5` - lag(`plus1.5`),
@@ -104,105 +145,91 @@ incubator_treatments <- incubator_treatments %>%
 RESOURCE ACQUISITION
 ```{r}
 #dataset for period of resource alocation - using median pupation date and median emergence date
-#acquisition_ambient_temp <- ambient_temperatures %>%
- # filter(datetime >= as.Date("2025-04-11") & datetime <= as.Date("2025-05-16"))
 
-acquisition_ambient_temp <- ambient_temp_2hourly %>%
-  filter(datetime >= as.POSIXct("2025-04-11 00:00:00") &
-         datetime <= as.POSIXct("2025-05-16 23:59:59"))
+acquisition_ambient_temp <- ambient_daily_means %>%
+  filter(date >= as.Date("2025-04-11") & date <= as.Date("2025-05-16"))
 
 mean(acquisition_ambient_temp$temp_change, na.rm = TRUE)
-#0.019
+#0.14
 
 sd(acquisition_ambient_temp$temp_change, na.rm = TRUE)
-#2.11
+#1.48
 
 
-mean(acquisition_ambient_temp$mean_temperature)
-#12.38838
-
-sd(acquisition_ambient_temp$mean_temperature)
-#4.33
 
 
-acquisition_incubator_temp <- incubator_treatments %>%
-  filter(datetime >= as.POSIXct("2025-04-11 00:00:00") &
-         datetime <= as.POSIXct("2025-05-16 23:59:59"))
+acquisition_incubator_temp <- incubator_daily_means %>%
+  filter(date >= as.Date("2025-04-11") & date <= as.Date("2025-05-16"))
 
 
 
 
 mean(acquisition_incubator_temp$temp_change_minus1.5, na.rm = TRUE)
-#0.009
+#0.13
 sd(acquisition_incubator_temp$temp_change_minus1.5, na.rm = TRUE)
-#1.653995
+#0.3
 
 
-mean(acquisition_incubator_temp$actual.mean)
-#10.10372
+mean(acquisition_incubator_temp$temp_change_actual.mean, na.rm = TRUE)
 sd(acquisition_incubator_temp$temp_change_actual.mean, na.rm = TRUE)
-#1.654251
+#0.28
 
 
-mean(acquisition_incubator_temp$plus1.5)
-#11.83628
+mean(acquisition_incubator_temp$temp_change_plus1.5)
+#0.12
 sd(acquisition_incubator_temp$temp_change_plus1.5)
-#1.653859
+#0.27
 
-mean(acquisition_incubator_temp$plus2.5)
-#12.98884
+mean(acquisition_incubator_temp$temp_change_plus2.5)
+#0.11
 sd(acquisition_incubator_temp$temp_change_plus2.5)
-#1.655022
+#0.27
 
 ```
 
 RESOURCE ALLOCATION
 ```{r}
 #dataset for period of resource acquisition - using median halfhatch date and median pupation date
-
-allocation_ambient_temp <- ambient_temp_2hourly %>%
-  filter(datetime >= as.POSIXct("2025-05-16 00:00:00") &
-         datetime <= as.POSIXct("2025-12-29 23:59:59"))
-
-ggplot(allocation_ambient_temp, aes(x = datetime, y = temperature)) +
-  geom_line()
+allocation_ambient_temp <- ambient_daily_means %>%
+  filter(date >= as.Date("2025-05-16") & date <= as.Date("2025-12-29"))
 
 
-mean(allocation_ambient_temp$mean_temperature)
-#14.34711
+
+mean(allocation_ambient_temp$temp_change)
+#-0.03
 
 sd(allocation_ambient_temp$temp_change)
-#1.473914
-
-
-allocation_incubator_temp <- incubator_treatments %>%
-  filter(datetime >= as.POSIXct("2025-05-16 00:00:00") &
-         datetime <= as.POSIXct("2025-12-29 23:59:59"))
+#1.72
 
 
 
+allocation_incubator_temp <- incubator_daily_means %>%
+  filter(date >= as.Date("2025-05-16") & date <= as.Date("2025-12-29"))
 
-mean(allocation_incubator_temp$minus1.5)
-#10.22277
+
+mean(allocation_incubator_temp$temp_change_minus1.5)
+#-0.04
 sd(allocation_incubator_temp$temp_change_minus1.5)
-#5.568563
+#0.26
 
 
-mean(allocation_incubator_temp$actual.mean)
-#12.20691
-sd(allocation_incubator_temp$actual.mean)
-#5.384005
+
+mean(allocation_incubator_temp$temp_change_actual.mean)
+#0.039
+sd(allocation_incubator_temp$temp_change_actual.mean)
+#0.26
 
 
-mean(allocation_incubator_temp$plus1.5)
-#14.18713
-sd(allocation_incubator_temp$plus1.5)
-#5.211962
 
-mean(allocation_incubator_temp$plus2.5)
-#15.51012
-sd(allocation_incubator_temp$plus2.5)
-#5.100805
+mean(allocation_incubator_temp$temp_change_plus1.5)
+#-0.035
+sd(allocation_incubator_temp$temp_change_plus1.5)
+#0.26
+
+
+mean(allocation_incubator_temp$temp_change_plus2.5)
+sd(allocation_incubator_temp$temp_change_plus2.5)
+#0.28
 
 ```
 

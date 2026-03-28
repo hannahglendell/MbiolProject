@@ -41,13 +41,13 @@ temp_cols <- c(
 wild_moths_trade_off <- 
 ggplot(
   results %>% filter(pupal_treatment == "wild"),
-  aes(x = egg_mean_1A, y = clutch_size)) +
+  aes(x = clutch_size, y = egg_mean_1A)) +
   geom_point( size = 4) +
-coord_cartesian(xlim = c(0.16, 0.24), ylim = c(0, 400)) +
+coord_cartesian(xlim = c(0, 400), ylim = c(0.16, 0.24)) +
     labs(
-       title = "A) Wild moths",
-      x = expression(Mean~egg~area~(mm^2)),
-      y = "clutch size (number of eggs)") + 
+       title = "B) Wild moths",
+      y = expression(Mean~egg~area~(mm^2)),
+      x = "clutch size (number of eggs)") + 
   theme_bw() + 
     theme(
     text = element_text(size = 18),            # increases all text
@@ -69,13 +69,13 @@ wild_moths_trade_off
 ```{r}
 lab_moths_trade_off <- ggplot(
   results %>% filter(pupal_treatment != "wild"),
-  aes(x = egg_mean_1A, y = clutch_size)) +
+  aes(x = clutch_size, y = egg_mean_1A)) +
   geom_point(size = 4) +
-coord_cartesian(xlim = c(0.16, 0.24), ylim = c(0, 400)) +
+coord_cartesian(xlim = c(0, 400), ylim = c(0.16, 0.24)) +
     labs(
-      title = "B) Laboratory moths",
-      x = expression(Mean~egg~area~(mm^2)),
-      y = "clutch size (number of eggs)") +
+      title = "A) Laboratory moths",
+      y = expression(Mean~egg~area~(mm^2)),
+      x = "clutch size (number of eggs)") +
   theme_bw() + 
     theme(
     text = element_text(size = 18),            # increases all text
@@ -88,7 +88,7 @@ coord_cartesian(xlim = c(0.16, 0.24), ylim = c(0, 400)) +
 lab_moths_trade_off
 
 
-trade_off_plot <- wild_moths_trade_off + lab_moths_trade_off
+trade_off_plot <-  lab_moths_trade_off + wild_moths_trade_off
 
 ggsave(
   here("figures", "trade off.png"),
