@@ -18,13 +18,23 @@ library(semEff)
 ```
 
 ```{r}
+#read in results dataset
 results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
+
+#find the mean female mass
+mean(results$weight, na.rm = TRUE)
+#0.02586914g
+#which is 25.9mg 
 
 #make maternal ID a factor
 results$maternalID <- as.factor(results$maternalID)
 
-#remove ambient, because these need to be modelled separately. also remove larval treatment of cool and mean, because the sample size isn't big enough to model - just not enough clutches.
-#I think I will model the ambient larva treatment separately.
+#find the mean female mass
+mean(results$weight)
+
+#only warm and hot larval treatments included in model
+#give each treatment its continuous temperature value
+#convert weight into mg
 results_filtered <- results %>%
   filter(
     larval_treatment %in% c("warm", "hot"),
@@ -39,13 +49,7 @@ results_filtered <- results %>%
     larval_treatment == "warm"  ~  11.35602,
     larval_treatment == "hot"   ~  12.523,
   )) %>%
-  mutate(weight_mg = weight * 1000) %>%
-  mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE)) %>%
-  mutate(across(
-    c(weight_mg, egg_mean_1A, clutch_size),
-    ~ as.numeric(scale(.)),
-    .names = "{.col}_z"
-  ))
+  mutate(weight_mg = weight * 1000)
 
 
 ```
@@ -72,13 +76,6 @@ results_hot <- sem_data %>%
 mean(results_hot$clutch_size)
 #139
 
-#the total effect of larval treatment on clutch size is 0.22
-#exp(0.22) = 1.246077
-#this means for every 1 degree of warming the moths lay ~25% more eggs, mediated through female mass
-#from warm to hot there is 13.89 - 12.76 = 1.13 degrees of warming
-#109 x 1.13 x 1.246077 = 153
-#109 x 1.246077 = 135
-#these estimates are pretty close to what we actually saw in the hot treatment
 ```
 
 fitting the psem model
@@ -89,15 +86,13 @@ m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment
 
 y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg, data = sem_data)
 
-x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + clutch_size + weight_mg + (1|maternalID), data = sem_data)
+x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + (1|maternalID), data = sem_data)
 
 # SEM with correlated error between clutch size and egg size
 sem_model <- psem(
   m_model,
   y_model,
-  x_model,
-  clutch_size %~~% egg_mean_1A   # this adds the correlated residual
-)
+  x_model)
 
 #check model assumptions
 plot(y_model)
@@ -115,8 +110,7 @@ coefs(sem_model, standardize = "scale", standardize.type = "Menard.OE")
 # Plot standardized SEM
 plot(sem_model, show = "std", digits = 2)
 
-#library(rsq)
-#rsq.partial(y_model)
+
 ```
 
 
@@ -125,18 +119,18 @@ plot(sem_model, show = "std", digits = 2)
 #set.seed(123)
 #standardised_effects <- semEff(sem_model,R = 10000, ran.eff = "maternalID")
 
-standardised_effects <- readRDS("~/University stuff/Year 4/results/R project/data/clean data/standardised_effects.rds")
-
-
-summary(standardised_effects)
-
-print(standardised_effects)
-
 #save the standardised effects so I don't have to re-run the bootstrap every time
 #saveRDS(
 # standardised_effects,
- #file = here("data", "clean data", "standardised_effects.rds")
+# file = here("data", "clean data", "standardised_effects.rds")
 #)
+
+standardised_effects <- readRDS("~/University stuff/Year 4/results/R project/data/clean data/standardised_effects.rds")
+
+summary(standardised_effects)
+
+
+
 ```
 
 
@@ -144,8 +138,8 @@ print(standardised_effects)
 ```{r}
 #to get unstandardised (raw) coefficients
 #set.seed(123)
-
 #effects <- bootEff(sem_model, R = 10000, ran.eff = "maternalID", incl.raw = TRUE) 
+
 #raw_effects <- semEff(effects, use.raw = TRUE)
 
 #saveRDS(raw_effects, file = here("data", "clean data", "raw_effects.rds"))
@@ -155,17 +149,15 @@ raw_effects <- readRDS("~/University stuff/Year 4/results/R project/data/clean d
 
 summary(raw_effects)
 
-#
-
 ```
 
 now I want to generate model predictions so that I can plot them
 ```{r}
 #bootstrap estimates for the model
-#sem.boot <- bootEff(sem_model, R = 10000, seed = 123, ran.eff = "maternalID")
+sem.boot <- bootEff(sem_model, R = 10000, seed = 123, ran.eff = "maternalID")
 
 #save this so i don't have to re-run this bootstrap every single time
-#saveRDS(sem.boot, file = here("data", "clean data", "sem.boot.rds"))
+saveRDS(sem.boot, file = here("data", "clean data", "sem.boot.rds"))
 
 #now read in the bootstrapped estimates for the model, that i saved earlier
 sem.boot <- readRDS("~/University stuff/Year 4/results/R project/data/clean data/sem.boot.rds")
@@ -173,7 +165,6 @@ sem.boot <- readRDS("~/University stuff/Year 4/results/R project/data/clean data
 
 #use the bootstrap estimates to calculate effects and confidence intervals
 sem.eff <- semEff(sem.boot)
-#summary(sem.eff)
 ```
 
 
