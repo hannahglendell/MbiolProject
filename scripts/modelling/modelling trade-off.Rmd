@@ -45,7 +45,7 @@ AIC(lm2)
 #AIC = -1465
 
 confint(lm2)
-
+icc(lm2)
 
 #likelihood ratio for both interaction terms
 lm2_no_clutch_size <- update(lm2, . ~ . - clutch_size:larval_treatment - clutch_size:pupal_treatment)

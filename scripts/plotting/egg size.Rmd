@@ -223,6 +223,34 @@ ggplot(larval_temp_warmhot,
     )
 ```
 
+```{r}
+
+#convert the pupal temperatures to factors so they plot in the correct order
+results$larval_treatment <- factor(results$pupal_treatment,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
+larval_temp_warmhot <- results %>% 
+  filter(larval_treatment %in% c("wild", "ambient", "warm", "hot"))
+
+ggplot(larval_temp_warmhot,
+    aes(x = larval_treatment, y = egg_mean_1A, fill = pupal_treatment)) +
+    geom_jitter(aes(color = pupal_treatment),
+                width = 0.15, size = 2, alpha = 0.8) +
+    geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+    scale_x_discrete(
+        limits = levels(results$larval_treatment),
+        drop = FALSE) +
+  scale_y_continuous(limits = c(0.16, 0.27)) +
+    scale_fill_manual(values = temp_cols) +
+    scale_color_manual(values = temp_cols) +
+  geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
+    theme_bw() +
+    theme(legend.position = "none") +
+    labs(
+      x = "Resource acquisition temperature",
+      y = expression(Mean~egg~area~(mm^2)),
+      title = paste("")
+    )
+```
 
 
 

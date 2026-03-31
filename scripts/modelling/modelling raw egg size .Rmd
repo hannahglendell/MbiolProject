@@ -39,22 +39,17 @@ sd(raw_egg_sizes$egg_mean_1A)
 
 
 #looking just at ambient, warm and hot larval temperature - need to remove wild because they don't have weight, or maternal ID or clutchID
-egg_sizes_ambient_larval <- raw_egg_sizes %>%
-  mutate(larval_treatment = case_when(pupal_treatment == "wild" ~ "wild", TRUE ~ larval_treatment)) %>%
+egg_sizes_filtered <- raw_egg_sizes %>%
   filter(larval_treatment %in% c("ambient", "warm", "hot")) %>%
   mutate(weight_mg = weight * 1000) %>%
   mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE))
 
-#convert larval treatment to an ordered factor
-egg_sizes_ambient_larval <- egg_sizes_ambient_larval %>%
-  mutate(
-    larval_treatment = factor(larval_treatment, levels = c("ambient", "warm", "hot")))
 
 ```
 
 ```{r}
 #look at the distributions of egg size
-ggplot(egg_sizes_ambient_larval, aes(x = area)) +
+ggplot(egg_sizes_filtered, aes(x = area)) +
   geom_histogram(binwidth = 0.01) +  # change this value to control bin width +
   labs(title = "Distribution of Egg Sizes",
        x = "Egg Area",
@@ -64,22 +59,32 @@ ggplot(egg_sizes_ambient_larval, aes(x = area)) +
 
 
 ```{r}
-lm4 <- lmer(area ~ larval_treatment * pupal_treatment + (1|grandmotherID/motherID) + weight_mg, data = egg_sizes_ambient_larval )
+lm4 <- lmer(area ~ larval_treatment * pupal_treatment + (1|grandmotherID/motherID) + weight_mg_centered, data = egg_sizes_filtered)
 summary(lm4)
-#confint(lm4)
-#AIC(lm4)
-#-7589
-#confint(lm4)
-#this has a lower AIC again so including maternalID as a random effect makes the model better.
 
-#vcov(lm4)
+#test the effect of the interaction term 
+lm4_no_interaction <- lmer(area ~ larval_treatment + pupal_treatment + (1|grandmotherID/motherID) + weight_mg_centered, data = egg_sizes_filtered)
+anova(lm4, lm4_no_interaction)
+#interaction effect not significant
 
-#do i need to get p-values for this mixed model?
+#test the overall effect of pupal temperature
+lm4_no_pupal <- lmer(area ~ larval_treatment + (1|grandmotherID/motherID) + weight_mg_centered, data = egg_sizes_filtered)
+anova(lm4, lm4_no_pupal)
+#pupal effect significant
+
+#test the overall effect of larval temperature
+lm4_no_larval <- lmer(area ~ pupal_treatment + (1|grandmotherID/motherID) + weight_mg_centered, data = egg_sizes_filtered)
+anova(lm4, lm4_no_larval)
+#larval effect significant - but HOW????
+
 ```
 
 ```{r}
 #pairwise comparisons
 library(emmeans)
+
+
+emmeans(lm4, ~ pupal_treatment | larval_treatment)
 
 #estimates marginal means for the pupal treatments, using lm6
 emm <- emmeans(lm4, ~ pupal_treatment)
@@ -87,13 +92,42 @@ emm
 
 #pairwise comparisons
 pairs(emm)
+summary(emm)
 
 #significant difference between ambient-mean, ambient-warm, and ambient-hot.
+
+
+emm <- emmeans(lm4, ~ larval_treatment)
+emm
+
+pairs(emm)
+
+ggplot(egg_sizes_filtered,
+    aes(x = larval_treatment, y = area)) +
+    geom_jitter(aes(color = larval_treatment),
+                width = 0.15, size = 2, alpha = 0.8) +
+    geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+    scale_x_discrete(
+        limits = levels(egg_sizes_filtered$larval_treatment),
+        drop = FALSE) +
+  scale_y_continuous(limits = c(0.16, 0.27)) +
+    scale_fill_manual(values = temp_cols) +
+    scale_color_manual(values = temp_cols) +
+  geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
+    theme_bw() +
+    theme(legend.position = "none") +
+    labs(
+      x = "Resource acquisition temperature",
+      y = expression(Mean~egg~area~(mm^2)),
+      title = paste("")
+    )
+
+
 ```
 
 
 ```{r}
-#library(ggeffects)
+library(ggeffects)
 
 temp_cols <- c(
   ambient = "#484A4C",
@@ -102,11 +136,11 @@ temp_cols <- c(
   warm    = "#E87A36",
   hot     = "#AF0808")
 
-pred <- ggpredict(lm4, terms = c("pupal_treatment", "larval_treatment"))
+pred <- ggpredict(lm4, terms = c("larval_treatment"))
 
 plot(pred) +
   labs(y = "Predicted egg area",
-       x = " Resource allocation temperature",
+       x = " Resource acquisition temperature",
        colour = " Resource acquisition temperature") +
   scale_colour_manual(values = temp_cols) +
   theme_bw()

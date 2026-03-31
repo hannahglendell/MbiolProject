@@ -1,0 +1,229 @@
+---
+title: "modelling clutch size"
+output: html_document
+---
+
+```{r}
+library(here)
+library(ggplot2)
+library(tidyverse)
+library(lme4)
+library(performance)
+library(MASS)
+library(pscl)
+library(dplyr)
+library(glmmTMB)
+```
+
+AMBIENT, WARM AND HOT LARVAL TEMPERATURE
+
+```{r}
+results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
+
+#remove ambient, because these need to be modelled separately. also remove larval treatment of cool and mean, because the sample size isn't big enough to model - just not enough clutches.
+#I think I will model the ambient larva treatment separately.
+results_filtered <- results %>%
+  filter(
+    larval_treatment %in% c("ambient", "warm", "hot")) %>%
+  mutate(weight_mg = weight * 1000) %>%
+  mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE)) %>%
+  mutate(across(
+    c(weight_mg, egg_mean_1A, clutch_size),
+    ~ as.numeric(scale(.)),
+    .names = "{.col}_z"
+  ))
+
+
+results_filtered <- results_filtered %>%
+  mutate(
+    larval_treatment = factor(larval_treatment, levels = c("ambient", "warm","hot")),
+    pupal_treatment = factor(pupal_treatment, levels = c("ambient", "cool","mean","warm","hot"))
+  )
+
+
+```
+
+```{r}
+#look at the distribution of clutch size
+ggplot(results, aes(x = clutch_size)) +
+  geom_histogram(binwidth = 5) +  # change this value to control bin width +
+  labs(title = "Distribution of clutch size",
+       x = "clutch size",
+       y = "Count") +
+  theme_minimal()
+
+
+#mean and variance of clutch size
+# mean
+mean(results_filtered$clutch_size, na.rm = TRUE)
+
+# variance
+var(results_filtered$clutch_size, na.rm = TRUE)
+
+#the mean is much greater than the variance, suggesting that a negative binomial model might be better than the poisson model
+
+#testing whether poisson or negative binomial model is better
+
+pois_mod <- glm(clutch_size ~ 1, family = poisson(link = "log"), data = results)
+
+nb_mod <- glm.nb(clutch_size ~ 1, data = results)
+
+AIC(pois_mod, nb_mod)
+#the AIC is way, way lower for the negative binomial model, so this is the better model to use.
+
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+#now try zero-inflated negative binomial models 
+
+#lm3_zinb <- zeroinfl(clutch_size ~  larval_treatment + pupal_treatment + weight_mg_centered, data = results_filtered, dist = "negbin")
+#summary(lm3_zinb)
+```
+
+```{r}
+
+mod.hurdl_1 <- glmmTMB(clutch_size ~ larval_treatment, ziformula = ~ larval_treatment, family = truncated_nbinom2, data = results_filtered)
+summary(mod.hurdl_1)
+AIC(mod.hurdl_1)
+#2474
+
+mod.hurdl_2 <- glmmTMB(clutch_size ~ larval_treatment + weight_mg_centered, ziformula = ~ larval_treatment + weight_mg_centered, family = truncated_nbinom2, data = results_filtered)
+summary(mod.hurdl_2)
+AIC(mod.hurdl_2)
+#2466
+
+mod.hurdl_3 <- glmmTMB(clutch_size ~ larval_treatment + weight_mg_centered + pupal_treatment, ziformula = ~ larval_treatment + weight_mg_centered + pupal_treatment, family = truncated_nbinom2, data = results_filtered)
+summary(mod.hurdl_3)
+AIC(mod.hurdl_3)
+#2478
+
+
+mod.hurdl_4 <- glmmTMB(clutch_size ~ larval_treatment + pupal_treatment + weight_mg_centered + (1 | maternalID), ziformula = ~ larval_treatment + pupal_treatment + weight_mg_centered, family = truncated_nbinom2, data = results_filtered)
+summary(mod.hurdl_4)
+AIC(mod.hurdl_4)
+#2467
+
+mod.hurdl_5 <- glmmTMB(clutch_size ~  weight_mg_centered, ziformula = ~ weight_mg_centered, family = truncated_nbinom2, data = results_filtered)
+summary(mod.hurdl_5)
+AIC(mod.hurdl_5)
+#2462
+
+
+```
+
+
+```{r}
+#clutch_size_mod <- glmmTMB(clutch_size ~ larval_treatment + pupal_treatment + weight_mg_centered + (1 | maternalID), ziformula = ~ larval_treatment + pupal_treatment + weight_mg_centered, family = truncated_nbinom2, data = results_filtered)
+#summary(clutch_size_mod)
+
+clutch_size_mod <- glmmTMB(clutch_size ~ larval_treatment , ziformula = ~ larval_treatment, family = truncated_nbinom2, data = results_filtered)
+summary(clutch_size_mod)
+
+
+
+clutch_size_mod_no_larval <- update(clutch_size_mod, . ~ . - larval_treatment)
+anova(clutch_size_mod, clutch_size_mod_no_larval)
+
+library(emmeans)
+
+emm <- emmeans(clutch_size_mod, ~ larval_treatment, type = "response")
+pairs(emm)
+summary(emm)
+
+```
+
+
+
+```{r}
+#model diagnostics for the best model (mod.hurdl_5)
+library(DHARMa)
+
+# simulate residuals
+sim_res <- simulateResiduals(mod.hurdl_5)
+
+# basic diagnostic plots
+plot(sim_res)
+
+testDispersion(sim_res)
+
+testZeroInflation(sim_res)
+
+
+#plot observed vs predicted
+pred <- predict(mod.hurdl_5, type = "response")
+
+plot(pred, results_filtered$clutch_size)
+abline(0, 1, col = "red")
+```
+
+
+
+
+
+COMPARISON BETWEEN WILD AND AMBIENT
+
+```{r}
+results_filtered_wild <- results %>%
+  filter(larval_treatment %in% c("wild", "ambient"))
+
+
+results_filtered_wild <- results_filtered_wild %>%
+  mutate(
+    larval_treatment = factor(larval_treatment, levels = c("wild", "ambient")))
+```
+
+```{r}
+
+mod.hurdl_1 <- glmmTMB(clutch_size ~ larval_treatment, ziformula = ~ larval_treatment, family = truncated_nbinom2, data = results_filtered_wild)
+summary(mod.hurdl_1)
+AIC(mod.hurdl_1)
+
+emm <- emmeans(mod.hurdl_1, ~ larval_treatment, type = "response")
+pairs(emm)
+summary(emm)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -2,26 +2,19 @@
 title: "modelling clutch size"
 output: html_document
 ---
-
+AMBIENT, WARM AND HOT LARVAL TREATMENT
 ```{r}
-library(here)
-library(ggplot2)
-library(tidyverse)
-library(lme4)
-library(performance)
-library(MASS)
-library(pscl)
-library(dplyr)
-library(glmmTMB)
-```
-
-WARM OR HOT LARVAL TREAMENT
-```{r}
-
 results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
 
 #make maternal ID a factor
 results$maternalID <- as.factor(results$maternalID)
+
+#how many eggs were counted in total
+sum(results$clutch_size) 
+
+#mean and SD of clutch size, including clutches of 0 eggs
+mean(results$clutch_size)
+sd(results$clutch_size)
 
 #make a treatment combination column
 results <- results %>%
@@ -31,23 +24,12 @@ results <- results %>%
 #number of mated females in each treatment group 
 table(results$treatment_combination)
 
-#remove ambient, because these need to be modelled separately. also remove larval treatment of cool and mean, because the sample size isn't big enough to model - just not enough clutches.
-#I think I will model the ambient larva treatment separately.
+
 results_filtered <- results %>%
   filter(
-    larval_treatment %in% c("warm", "hot")) %>%
-  mutate(numerical_pupal_treatment = case_when(
-    pupal_treatment == "cool"  ~ -1.5,
-    pupal_treatment == "mean"  ~  0.0,
-    pupal_treatment == "warm"  ~  1.5,
-    pupal_treatment == "hot"   ~  2.5,
-    TRUE ~ NA_real_
-  )) %>% 
-  mutate(numerical_larval_treatment = case_when(
-    larval_treatment == "warm"  ~  1.5,
-    larval_treatment == "hot"   ~  2.5,
-    TRUE ~ NA_real_
-  )) %>%
+    larval_treatment %in% c("ambient", "warm", "hot")) %>%
+  filter(clutch_size != 0) %>%
+  filter(!is.na(egg_mean_1A)) %>%
   mutate(weight_mg = weight * 1000) %>%
   mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE)) %>%
   mutate(across(
@@ -56,22 +38,31 @@ results_filtered <- results %>%
     .names = "{.col}_z"
   ))
 
-
 results_filtered <- results_filtered %>%
   mutate(
-    larval_treatment = factor(larval_treatment, levels = c("warm","hot")),
+    larval_treatment = factor(larval_treatment, levels = c("ambient", "warm","hot")),
     pupal_treatment = factor(pupal_treatment, levels = c("ambient", "cool","mean","warm","hot"))
   )
+```
 
-#how many eggs were counted in total
-sum(results$clutch_size) 
+```{r}
 
-#results <- results %>%
-  #filter(clutch_size != 0)
+#including ambient pupal treatment
+results_filtered %>%
+  group_by(larval_treatment) %>%
+  summarise(mean_clutch_size = mean(clutch_size, na.rm = TRUE),
+            n = n(),
+            sd = sd(clutch_size, na.rm = TRUE))
 
-mean(results$clutch_size)
 
-sd(results$clutch_size)
+
+#not including ambient pupal treatment (same as used in PSEM)
+results_filtered %>%
+  filter(pupal_treatment != "ambient") %>%
+  group_by(larval_treatment) %>%
+  summarise(mean_clutch_size = mean(clutch_size, na.rm = TRUE),
+            n = n(),
+            sd = sd(clutch_size, na.rm = TRUE))
 
 ```
 
@@ -83,26 +74,6 @@ ggplot(results, aes(x = clutch_size)) +
        x = "clutch size",
        y = "Count") +
   theme_minimal()
-
-# mean
-mean(results_filtered$clutch_size, na.rm = TRUE)
-
-# variance
-var(results_filtered$clutch_size, na.rm = TRUE)
-
-#the mean is much greater than the variance, suggesting that a negative binomial model might be better than the poisson model
-
-
-pois_mod <- glm(clutch_size ~ 1, family = poisson(link = "log"), data = results)
-
-nb_mod <- glm.nb(clutch_size ~ 1, data = results)
-
-AIC(pois_mod, nb_mod)
-#the AIC is way, way lower for the negative binomial model, so this is the better model to use.
-
-
-
-
 
 
 #look at the distribution of female mass
@@ -125,205 +96,44 @@ ggplot(results, aes(x = egg_mean_1A)) +
 
 
 ```{r}
-#trying negative binomial models
-lm1_nb <- glm.nb(clutch_size ~  larval_treatment, data = results_filtered)
-summary(lm1_nb)
-AIC(lm1_nb)
+lm1 <- glmmTMB(clutch_size ~ larval_treatment * pupal_treatment + weight_mg_centered + (1|maternalID), family = nbinom2, data = results_filtered)
+summary(lm1)
 
-lm2_nb <- glm.nb(clutch_size ~  larval_treatment + weight_mg_centered, data = results_filtered)
-summary(lm2_nb)
-AIC(lm2_nb)
+#as expected from path analysis, including the ambient group doesn't change anything - female mass is signficant, no direct effect of larval or pupal temp on clutch size
 
-lm3_nb <- glm.nb(clutch_size ~  larval_treatment + pupal_treatment + weight_mg_centered, data = results_filtered)
-summary(lm3_nb)
-AIC(lm3_nb)
+lm1_no_larval <- glmmTMB(
+  clutch_size ~ pupal_treatment + weight_mg_centered + (1 | maternalID),
+  family = nbinom2,
+  data = results_filtered
+)
 
-lm4_nb <- glmer.nb(clutch_size ~  larval_treatment + pupal_treatment + weight_mg_centered + (1|maternalID), data = results_filtered)
-summary(lm4_nb)
-```
+anova(lm1, lm1_no_larval)
 
-
-
-```{r}
-#now try zero-inflated negative binomial models 
-lm1_zinb <- zeroinfl(clutch_size ~  larval_treatment, data = results_filtered, dist = "negbin")
-summary(lm1_zinb)
-AIC(lm1_zinb)
-
-lm2_zinb <- zeroinfl(clutch_size ~  larval_treatment + weight_mg_centered, data = results_filtered, dist = "negbin")
-summary(lm2_zinb)
-AIC(lm2_zinb)
-
-lm3_zinb <- zeroinfl(clutch_size ~  larval_treatment + pupal_treatment + weight_mg_centered, data = results_filtered, dist = "negbin")
-summary(lm3_zinb)
-```
-
-```{r}
-
-mod.hurdl_1 <- glmmTMB(clutch_size ~ larval_treatment, ziformula = ~ larval_treatment, family = truncated_nbinom2, data = results_filtered)
-summary(mod.hurdl_1)
-AIC(mod.hurdl_1)
-#2474
-
-mod.hurdl_2 <- glmmTMB(clutch_size ~ larval_treatment + weight_mg_centered, ziformula = ~ larval_treatment + weight_mg_centered, family = truncated_nbinom2, data = results_filtered)
-summary(mod.hurdl_2)
-AIC(mod.hurdl_2)
-#2466
-
-mod.hurdl_3 <- glmmTMB(clutch_size ~ larval_treatment + weight_mg_centered + pupal_treatment, ziformula = ~ larval_treatment + weight_mg_centered + pupal_treatment, family = truncated_nbinom2, data = results_filtered)
-summary(mod.hurdl_3)
-AIC(mod.hurdl_3)
-#2478
-
-
-mod.hurdl_4 <- glmmTMB(clutch_size ~ larval_treatment + weight_mg_centered + (1 | maternalID), ziformula = ~ larval_treatment + weight_mg_centered, family = truncated_nbinom2, data = results_filtered)
-summary(mod.hurdl_4)
-AIC(mod.hurdl_4)
-#2467
-
-mod.hurdl_5 <- glmmTMB(clutch_size ~  weight_mg_centered, ziformula = ~ weight_mg_centered, family = truncated_nbinom2, data = results_filtered)
-summary(mod.hurdl_5)
-AIC(mod.hurdl_5)
-#2462
-
+icc(lm1)
+#grandmother identity explains just 4% of the variation in clutch size
 
 ```
 
+
+COMPARISON BETWEEN WILD AND AMBIENT
 ```{r}
-#model diagnostics for the best model (mod.hurdl_5)
-library(DHARMa)
-
-# simulate residuals
-sim_res <- simulateResiduals(mod.hurdl_5)
-
-# basic diagnostic plots
-plot(sim_res)
-
-testDispersion(sim_res)
-
-testZeroInflation(sim_res)
-
-
-#plot observed vs predicted
-pred <- predict(mod.hurdl_5, type = "response")
-
-plot(pred, results_filtered$clutch_size)
-abline(0, 1, col = "red")
-```
-
-
-
-
-THE EFFECT OF LARVAL TEMP ON FEMALE MASS
-
-```{r}
-#looking at the effect of larval treatment on female mass
-
-results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
-
-results <- results %>%
-  mutate(
-    larval_treatment = factor(larval_treatment, levels = c("ambient", "cool","mean","warm","hot"))
-  ) %>%
-  mutate(weight_mg = weight * 1000)
-
-
-
-wm_1 <- lm(weight_mg ~ larval_treatment, data = results)
-summary(wm_1)
-
-AIC(wm_1)
-```
-
-AMBIENT LARVAL TREATMENT
-
-```{r}
-results_filtered_ambient <- results %>%
+results_filtered_wild <- results %>%
   filter(larval_treatment %in% c("wild", "ambient")) %>%
-  mutate(numerical_pupal_treatment = case_when(
-    pupal_treatment == "cool"  ~ -1.5,
-    pupal_treatment == "mean"  ~  0.0,
-    pupal_treatment == "warm"  ~  1.5,
-    pupal_treatment == "hot"   ~  2.5,
-    TRUE ~ NA_real_
-  )) %>% 
-  mutate(numerical_larval_treatment = case_when(
-    larval_treatment == "warm"  ~  1.5,
-    larval_treatment == "hot"   ~  2.5,
-    TRUE ~ NA_real_
-  )) %>%
-  mutate(weight_mg = weight * 1000) %>%
-  mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE)) %>%
-  mutate(across(
-    c(weight_mg, egg_mean_1A, clutch_size),
-    ~ as.numeric(scale(.)),
-    .names = "{.col}_z"
-  ))
-
-
-results_filtered_ambient <- results_filtered_ambient %>%
+  filter(clutch_size != 0) %>%
+  filter(!is.na(egg_mean_1A)) %>%
   mutate(
-    pupal_treatment = factor(pupal_treatment, levels = c("wild", "ambient", "cool","mean","warm","hot")),
-    larval_treatment = factor(larval_treatment, levels = c("wild", "ambient")))
+    larval_treatment = factor(larval_treatment, levels = c("ambient", "wild")))
+
+results_filtered_wild %>%
+  filter(pupal_treatment != "ambient") %>%
+  group_by(larval_treatment) %>%
+  summarise(mean_clutch_size = mean(clutch_size, na.rm = TRUE),
+            n = n(),
+            sd = sd(clutch_size, na.rm = TRUE))
 ```
 
 ```{r}
-
-mod.hurdl_1 <- glmmTMB(clutch_size ~ pupal_treatment, ziformula = ~ pupal_treatment, family = truncated_nbinom2, data = results_filtered_ambient)
-summary(mod.hurdl_1)
-AIC(mod.hurdl_1)
-#AIC = 1936
-
-mod.hurdl_2 <- glmmTMB(clutch_size ~ larval_treatment, ziformula = ~ larval_treatment, family = truncated_nbinom2, data = results_filtered_ambient)
-summary(mod.hurdl_2)
-AIC(mod.hurdl_2)
-#1922
-
-#THIS IS THE BEST MODEL
-mod.hurdl_3 <- glmmTMB(clutch_size ~ weight_mg_centered, ziformula = ~ weight_mg_centered, family = truncated_nbinom2, data = results_filtered_ambient)
-summary(mod.hurdl_3)
-AIC(mod.hurdl_3)
-#AIC = 1099
-
-
-mod.hurdl_4 <- glmmTMB(clutch_size ~ weight_mg_centered + (1 | maternalID), ziformula = ~ weight_mg_centered + (1|maternalID), family = truncated_nbinom2, data = results_filtered_ambient)
-summary(mod.hurdl_4)
-AIC(mod.hurdl_4)
-#AIC = 1103
-
+lm2 <- glmmTMB(clutch_size ~ larval_treatment, family = nbinom2, data = results_filtered_wild)
+summary(lm2)
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

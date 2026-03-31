@@ -29,8 +29,6 @@ mean(results$weight, na.rm = TRUE)
 #make maternal ID a factor
 results$maternalID <- as.factor(results$maternalID)
 
-#find the mean female mass
-mean(results$weight)
 
 #only warm and hot larval treatments included in model
 #give each treatment its continuous temperature value
