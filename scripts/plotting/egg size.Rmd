@@ -202,7 +202,7 @@ results$pupal_treatment <- factor(results$pupal_treatment,
 larval_temp_warmhot <- results %>% 
   filter(larval_treatment %in% c("wild", "ambient", "warm", "hot"))
 
-ggplot(larval_temp_warmhot,
+ggplot(results,
     aes(x = pupal_treatment, y = egg_mean_1A, fill = pupal_treatment)) +
     geom_jitter(aes(color = pupal_treatment),
                 width = 0.15, size = 2, alpha = 0.8) +
@@ -221,6 +221,26 @@ ggplot(larval_temp_warmhot,
       y = expression(Mean~egg~area~(mm^2)),
       title = paste("")
     )
+
+ggplot(results,
+       aes(x = pupal_treatment,
+           y = egg_mean_1A,
+           fill = larval_treatment)) +
+  geom_boxplot(position = position_dodge(width = 0.7),
+               alpha = 0.5,
+               outlier.shape = NA) +
+  geom_jitter(aes(color = larval_treatment),
+              position = position_dodge(width = 0.7),
+              size = 2,
+              alpha = 0.8) +
+  scale_fill_manual(values = temp_cols) +
+  scale_color_manual(values = temp_cols) +
+  scale_y_continuous(limits = c(0.16, 0.27)) +
+  theme_bw() +
+  labs(
+    x = "pupal treatment",
+    y = expression(Mean~egg~area~(mm^2))
+  )
 ```
 
 ```{r}

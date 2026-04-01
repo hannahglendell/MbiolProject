@@ -9,6 +9,8 @@ library(here)
 library(ggplot2)
 library(tidyverse)
 library(lme4)
+library(emmeans)
+library(lmerTest)
 ```
 working on the raw egg size measurements for each individual egg
 
@@ -16,8 +18,18 @@ AMBIENT, WARM AND HOT LARVAL TEMPERATURE
 ```{r}
 raw_egg_sizes <- read.csv(here("data", "clean data", "raw egg sizes.csv"))
 
+raw_egg_sizes %>%
+  filter(pupal_treatment == "wild") %>%
+  group_by(pupal_treatment) %>%
+  summarise(mean_egg_size = mean(area), n = n())
+
+
 raw_egg_sizes <- raw_egg_sizes %>%
   mutate(grandmotherID = sub("^[^.]*\\.[^.]*\\.([^_]+)_.*$", "\\1", adultID))
+
+#remove this adultID because it doens't have a grandmotherID
+raw_egg_sizes <- raw_egg_sizes %>%
+  filter(adultID != "CTRL.WTH_P8_W")
 
 #make maternal ID a factor
 raw_egg_sizes$grandmotherID <- as.factor(raw_egg_sizes$grandmotherID)
@@ -45,6 +57,13 @@ egg_sizes_filtered <- raw_egg_sizes %>%
   mutate(weight_mg_centered = weight_mg - mean(weight_mg, na.rm = TRUE))
 
 
+
+egg_sizes_filtered %>%
+  group_by(pupal_treatment) %>%
+  summarise(mean_egg_size = mean(area), n = n())
+
+
+
 ```
 
 ```{r}
@@ -59,6 +78,9 @@ ggplot(egg_sizes_filtered, aes(x = area)) +
 
 
 ```{r}
+
+
+
 lm4 <- lmer(area ~ larval_treatment * pupal_treatment + (1|grandmotherID/motherID) + weight_mg_centered, data = egg_sizes_filtered)
 summary(lm4)
 
@@ -67,68 +89,42 @@ lm4_no_interaction <- lmer(area ~ larval_treatment + pupal_treatment + (1|grandm
 anova(lm4, lm4_no_interaction)
 #interaction effect not significant
 
+
 #test the overall effect of pupal temperature
 lm4_no_pupal <- lmer(area ~ larval_treatment + (1|grandmotherID/motherID) + weight_mg_centered, data = egg_sizes_filtered)
-anova(lm4, lm4_no_pupal)
-#pupal effect significant
+anova(lm4_no_interaction, lm4_no_pupal)
+#pupal effect very significant
 
 #test the overall effect of larval temperature
 lm4_no_larval <- lmer(area ~ pupal_treatment + (1|grandmotherID/motherID) + weight_mg_centered, data = egg_sizes_filtered)
-anova(lm4, lm4_no_larval)
-#larval effect significant - but HOW????
+anova(lm4_no_interaction, lm4_no_larval)
+#larval temp is significant overall
 
+confint(lm4)
+#confidence intervals of larval treatment effects overlap with zero
 ```
 
 ```{r}
 #pairwise comparisons
-library(emmeans)
-
-
-emmeans(lm4, ~ pupal_treatment | larval_treatment)
-
-#estimates marginal means for the pupal treatments, using lm6
-emm <- emmeans(lm4, ~ pupal_treatment)
+#estimates marginal means for the pupal treatments
+emm <- emmeans(lm4_no_interaction, ~ pupal_treatment)
 emm
-
-#pairwise comparisons
 pairs(emm)
 summary(emm)
-
 #significant difference between ambient-mean, ambient-warm, and ambient-hot.
 
 
-emm <- emmeans(lm4, ~ larval_treatment)
+#estimate marginal means based on larval treatment
+emm <- emmeans(lm4_no_interaction, ~ larval_treatment)
 emm
-
 pairs(emm)
 
-ggplot(egg_sizes_filtered,
-    aes(x = larval_treatment, y = area)) +
-    geom_jitter(aes(color = larval_treatment),
-                width = 0.15, size = 2, alpha = 0.8) +
-    geom_boxplot(alpha = 0.5, outlier.shape = NA) +
-    scale_x_discrete(
-        limits = levels(egg_sizes_filtered$larval_treatment),
-        drop = FALSE) +
-  scale_y_continuous(limits = c(0.16, 0.27)) +
-    scale_fill_manual(values = temp_cols) +
-    scale_color_manual(values = temp_cols) +
-  geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
-    theme_bw() +
-    theme(legend.position = "none") +
-    labs(
-      x = "Resource acquisition temperature",
-      y = expression(Mean~egg~area~(mm^2)),
-      title = paste("")
-    )
 
 
-```
+pred <- ggpredict(lm4_no_interaction,
+                  terms = c("pupal_treatment"))
 
-
-```{r}
-library(ggeffects)
-
+#assign colours to the temperatures                           
 temp_cols <- c(
   ambient = "#484A4C",
   cool    = "#76C0CC",
@@ -136,15 +132,50 @@ temp_cols <- c(
   warm    = "#E87A36",
   hot     = "#AF0808")
 
-pred <- ggpredict(lm4, terms = c("larval_treatment"))
+ggplot(pred, aes(x = x, y = predicted)) +
+  geom_point(color = temp_cols) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high),
+                width = 0.1) +
+  #scale_y_continuous(limits = c(0.190, 0.215)) +
+  #scale_color_manual(values = temp_cols) +
+  labs(
+    x = "Resource allocation treatment",
+    y = expression(Predicted~egg~area~(mm^2))
+  ) +
+  theme_bw()
 
-plot(pred) +
-  labs(y = "Predicted egg area",
-       x = " Resource acquisition temperature",
-       colour = " Resource acquisition temperature") +
-  scale_colour_manual(values = temp_cols) +
+ggplot(pred, aes(x = x, y = predicted)) +
+  # raw data
+  geom_jitter(data = egg_sizes_filtered,
+              aes(x = pupal_treatment, y = area),
+              width = 0.15,
+              alpha = 0.4,
+              color = "grey") +
+  
+  # model predictions
+  geom_point(color = temp_cols, size = 2) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high),
+                width = 0.1) +
+  
+  labs(
+    x = "Resource allocation temperature",
+    y = expression(Predicted~egg~area~(mm^2))
+  ) +
   theme_bw()
 
 ```
+AMBIENT AND WILD COMPARISON
+```{r}
+ambient_and_wild <- raw_egg_sizes %>%
+  filter(pupal_treatment %in% c("wild", "ambient")) %>%
+   mutate(
+    larval_treatment = factor(larval_treatment, levels = c("ambient", "wild")))
+
+lm1 <- lm(area ~ larval_treatment, data = ambient_and_wild)
+summary(lm1)
+```
+
+
+
 
 

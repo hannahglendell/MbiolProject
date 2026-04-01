@@ -2,6 +2,18 @@
 title: "modelling clutch size"
 output: html_document
 ---
+```{r}
+library(here)
+library(ggplot2)
+library(tidyverse)
+library(lme4)
+library(performance)
+library(MASS)
+library(pscl)
+library(dplyr)
+library(glmmTMB)
+```
+
 AMBIENT, WARM AND HOT LARVAL TREATMENT
 ```{r}
 results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
@@ -101,13 +113,31 @@ summary(lm1)
 
 #as expected from path analysis, including the ambient group doesn't change anything - female mass is signficant, no direct effect of larval or pupal temp on clutch size
 
+lm1_no_interaction <- glmmTMB(clutch_size ~ larval_treatment + pupal_treatment + weight_mg_centered + (1|maternalID), family = nbinom2, data = results_filtered)
+anova(lm1, lm1_no_interaction)
+#interaction term doesn't improve fit
+
+
 lm1_no_larval <- glmmTMB(
   clutch_size ~ pupal_treatment + weight_mg_centered + (1 | maternalID),
   family = nbinom2,
-  data = results_filtered
-)
+  data = results_filtered)
+anova(lm1_no_interaction, lm1_no_larval)
+#larval treatment doesnt improve fit
 
-anova(lm1, lm1_no_larval)
+lm1_no_pupal <- glmmTMB(
+  clutch_size ~ larval_treatment + weight_mg_centered + (1 | maternalID),
+  family = nbinom2,
+  data = results_filtered)
+anova(lm1_no_interaction, lm1_no_pupal)
+#pupal treatment doesn't improve fit
+
+lm1_no_weight <- glmmTMB(
+  clutch_size ~ larval_treatment + pupal_treatment + (1 | maternalID),
+  family = nbinom2,
+  data = results_filtered)
+anova(lm1_no_interaction, lm1_no_weight)
+#weight does improve model fit
 
 icc(lm1)
 #grandmother identity explains just 4% of the variation in clutch size
