@@ -173,4 +173,34 @@ ambient_data_feb2025$temperature <- as.numeric(ambient_data_feb2025$temperature)
 
 write.csv(ambient_data_feb2025, file = here("data", "clean data", "ambient temperatures.csv"), row.names = FALSE)
 ```
+CATERPILLAR HATCH DATE DATA
+```{r}
+eggs_spreadsheet <- read.csv(here("data", "raw data", "eggs spreadsheet.csv"))
+
+hatch_dates <- read.csv(here("data", "raw data", "HG_hatch_data(Sheet1).csv"))
+
+caterpillar_data <- eggs_spreadsheet %>%
+  left_join(hatch_dates, by = "eggID")
+
+#make a column of pupal_treatment
+caterpillar_data <- caterpillar_data %>%
+  mutate(
+    second_letter = str_split(clutchID, "\\.", simplify = TRUE)[,2],
+    pupal_treatment = case_when(
+      second_letter == "A" ~ "ambient",
+      second_letter == "M" ~ "mean",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  select(-second_letter)
+
+caterpillar_data$hatch_date <- as.Date(caterpillar_data$hatch_date, format = "%m/%d/%Y")
+caterpillar_data$weighday_1 <- as.Date(caterpillar_data$weighday_1, format = "%m/%d/%Y")
+caterpillar_data$weighday_2 <- as.Date(caterpillar_data$weighday_2, format = "%m/%d/%Y")
+caterpillar_data$weighday_3 <- as.Date(caterpillar_data$weighday_3, format = "%m/%d/%Y")
+caterpillar_data$weighday_4 <- as.Date(caterpillar_data$weighday_4, format = "%m/%d/%Y")
+
+write.csv(caterpillar_data, file = here("data", "clean data", "caterpillar_data.csv"), row.names = FALSE)
+
+```
 

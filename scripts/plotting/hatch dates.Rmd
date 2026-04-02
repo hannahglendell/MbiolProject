@@ -1,0 +1,40 @@
+---
+title: "hatch dates"
+output: html_document
+---
+
+```{r}
+caterpillar_data <- read.csv(here("data", "clean data", "caterpillar_data.csv"))
+
+caterpillar_data <- caterpillar_data %>%
+  filter(!is.na(hatch_date))
+
+caterpillar_data$pupal_treatment <- as.factor(caterpillar_data$pupal_treatment)
+caterpillar_data$hatch_date <- as.Date(caterpillar_data$hatch_date)
+
+
+```
+
+```{r}
+temp_cols <- c(
+  ambient = "#484A4C",
+  mean    = "#F9CA0F")
+
+ggplot(caterpillar_data, aes(x = hatch_date, y = size_01, colour = pupal_treatment)) +
+  geom_point(alpha = 0.6) +
+  scale_colour_manual(values = temp_cols) +
+  scale_x_date(date_breaks = "2 day", date_labels = "%b %d") +
+  labs(x = "Hatch date", y = "Egg size") +
+  theme_bw()
+
+ggplot(caterpillar_data, aes(x = hatch_date, y = pupal_treatment, colour = pupal_treatment)) +
+  geom_boxplot() +
+  geom_jitter() +
+  scale_colour_manual(values = temp_cols) +
+  labs(x = "Pupal Treatment", y = "Hatch Date") +
+  theme_bw()
+
+
+
+```
+

@@ -1,0 +1,35 @@
+---
+title: "modelling caterpillars"
+output: html_document
+---
+```{r}
+library(lme4)
+library(lmerTest)
+```
+
+
+```{r}
+caterpillar_data <- read.csv(here("data", "clean data", "caterpillar_data.csv"))
+
+caterpillar_data <- caterpillar_data %>%
+  filter(!is.na(hatch_date))
+
+caterpillar_data$pupal_treatment <- as.factor(caterpillar_data$pupal_treatment)
+caterpillar_data$hatch_date <- as.Date(caterpillar_data$hatch_date)
+
+caterpillar_data <- caterpillar_data %>%
+  mutate(julian_hatch_date = yday(hatch_date)) %>%
+  mutate(clutchID = str_split(clutchID, "\\.", simplify = TRUE)[,3])
+
+caterpillar_data$clutchID <- as.factor(caterpillar_data$clutchID)
+
+```
+
+```{r}
+lm1 <- lmer(julian_hatch_date ~ size_01 * pupal_treatment + (1|clutchID), data = caterpillar_data)
+summary(lm1)
+
+lm2 <- lm(julian_hatch_date ~ size_01, data = caterpillar_data)
+summary(lm2)
+```
+
