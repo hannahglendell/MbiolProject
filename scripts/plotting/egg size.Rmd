@@ -11,6 +11,7 @@ library(lme4)
 library(ggdist)
 library(patchwork)
 library(ggsignif)
+library(patchwork)
 ```
 
 EGG SIZE 
@@ -202,45 +203,45 @@ results$pupal_treatment <- factor(results$pupal_treatment,
 larval_temp_warmhot <- results %>% 
   filter(larval_treatment %in% c("wild", "ambient", "warm", "hot"))
 
-ggplot(results,
+mean_egg_size <- ggplot(results,
     aes(x = pupal_treatment, y = egg_mean_1A, fill = pupal_treatment)) +
     geom_jitter(aes(color = pupal_treatment),
-                width = 0.15, size = 2, alpha = 0.8) +
+                width = 0.15, size = 4, alpha = 0.8) +
     geom_boxplot(alpha = 0.5, outlier.shape = NA) +
     scale_x_discrete(
         limits = levels(results$pupal_treatment),
         drop = FALSE) +
-  scale_y_continuous(limits = c(0.16, 0.27)) +
+  scale_y_continuous(breaks = seq(0.14, 0.29, by = 0.02)) +
     scale_fill_manual(values = temp_cols) +
     scale_color_manual(values = temp_cols) +
-  geom_vline(xintercept = 2.5, linetype = "dashed", color = "black") +
+   geom_vline(xintercept = 2.5, linetype = "dashed", size = 1.5, color = "black") +
     theme_bw() +
     theme(legend.position = "none") +
     labs(
       x = "Resource allocation temperature",
       y = expression(Mean~egg~area~(mm^2)),
-      title = paste("")
+      title = paste("A) Observed mean egg size")
+    ) +
+    theme(
+    text = element_text(size = 18),            # increases all text
+    axis.title = element_text(size = 20),      # axis titles bigger
+    axis.text = element_text(size = 18),       # axis tick labels bigger
+    legend.text = element_text(size = 18),     # legend text bigger
+    legend.title = element_text(size = 20)
     )
 
-ggplot(results,
-       aes(x = pupal_treatment,
-           y = egg_mean_1A,
-           fill = larval_treatment)) +
-  geom_boxplot(position = position_dodge(width = 0.7),
-               alpha = 0.5,
-               outlier.shape = NA) +
-  geom_jitter(aes(color = larval_treatment),
-              position = position_dodge(width = 0.7),
-              size = 2,
-              alpha = 0.8) +
-  scale_fill_manual(values = temp_cols) +
-  scale_color_manual(values = temp_cols) +
-  scale_y_continuous(limits = c(0.16, 0.27)) +
-  theme_bw() +
-  labs(
-    x = "pupal treatment",
-    y = expression(Mean~egg~area~(mm^2))
-  )
+mean_egg_size
+
+
+egg_size <- mean_egg_size + egg_size_model
+
+ggsave(
+  here("figures", "egg_size.png"),
+  plot = egg_size,
+  width = 20,
+  height = 10,
+  dpi = 300
+)
 ```
 
 ```{r}

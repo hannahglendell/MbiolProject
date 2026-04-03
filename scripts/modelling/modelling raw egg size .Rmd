@@ -11,12 +11,16 @@ library(tidyverse)
 library(lme4)
 library(emmeans)
 library(lmerTest)
+library(ggeffects)
 ```
 working on the raw egg size measurements for each individual egg
 
 AMBIENT, WARM AND HOT LARVAL TEMPERATURE
 ```{r}
 raw_egg_sizes <- read.csv(here("data", "clean data", "raw egg sizes.csv"))
+
+mean(raw_egg_sizes$area)
+sd(raw_egg_sizes$area)
 
 raw_egg_sizes %>%
   filter(pupal_treatment == "wild") %>%
@@ -121,7 +125,7 @@ pairs(emm)
 
 
 
-pred <- ggpredict(lm4_no_interaction,
+pred <- ggeffects::ggpredict(lm4_no_interaction,
                   terms = c("pupal_treatment"))
 
 #assign colours to the temperatures                           
@@ -144,24 +148,36 @@ ggplot(pred, aes(x = x, y = predicted)) +
   ) +
   theme_bw()
 
-ggplot(pred, aes(x = x, y = predicted)) +
+egg_size_model <- ggplot(pred, aes(x = x, y = predicted)) +
   # raw data
-  geom_jitter(data = egg_sizes_filtered,
-              aes(x = pupal_treatment, y = area),
-              width = 0.15,
-              alpha = 0.4,
-              color = "grey") +
+  #geom_jitter(data = egg_sizes_filtered,
+            #  aes(x = pupal_treatment, y = area),
+            #  width = 0.15,
+            #  alpha = 0.4,
+            #  color = "grey") +
+  scale_y_continuous(breaks = seq(0.20, 0.21, by = 0.01)) +
   
   # model predictions
-  geom_point(color = temp_cols, size = 2) +
+  geom_point(color = temp_cols, size = 6) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high),
                 width = 0.1) +
   
   labs(
     x = "Resource allocation temperature",
-    y = expression(Egg~area~(mm^2))
+    y = expression(Individual~egg~area~(mm^2)),
+    title = "B) Model estimates for individual egg size"
   ) +
-  theme_bw()
+  theme_bw() +
+    theme(
+    text = element_text(size = 18),            # increases all text
+    axis.title = element_text(size = 20),      # axis titles bigger
+    axis.text = element_text(size = 18),       # axis tick labels bigger
+    legend.text = element_text(size = 18),     # legend text bigger
+    legend.title = element_text(size = 20)
+    )
+
+egg_size_model
+
 
 ```
 AMBIENT AND WILD COMPARISON

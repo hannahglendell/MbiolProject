@@ -110,8 +110,8 @@ ggplot(results, aes(x = egg_mean_1A)) +
 ```{r}
 lm1 <- glmmTMB(clutch_size ~ larval_treatment * pupal_treatment + weight_mg_centered + (1|maternalID), family = nbinom2, data = results_filtered)
 summary(lm1)
-
 #as expected from path analysis, including the ambient group doesn't change anything - female mass is signficant, no direct effect of larval or pupal temp on clutch size
+
 
 lm1_no_interaction <- glmmTMB(clutch_size ~ larval_treatment + pupal_treatment + weight_mg_centered + (1|maternalID), family = nbinom2, data = results_filtered)
 anova(lm1, lm1_no_interaction)
@@ -138,6 +138,17 @@ lm1_no_weight <- glmmTMB(
   data = results_filtered)
 anova(lm1_no_interaction, lm1_no_weight)
 #weight does improve model fit
+
+#how much of the variation in clutch size is explained by female mass?
+
+r2_full <- r2(lm1)
+r2_full
+
+r2_nomass <- r2(lm1_no_weight)
+r2_nomass
+
+r2_full$R2_marginal - r2_nomass$R2_marginal
+
 
 icc(lm1)
 #grandmother identity explains just 4% of the variation in clutch size
