@@ -7,7 +7,7 @@ output: html_document
 caterpillar_data <- read.csv(here("data", "clean data", "caterpillar_data.csv"))
 
 caterpillar_data <- caterpillar_data %>%
-  filter(!is.na(hatch_date))
+  filter(!is.na(hatch_date)) 
 
 caterpillar_data$pupal_treatment <- as.factor(caterpillar_data$pupal_treatment)
 caterpillar_data$hatch_date <- as.Date(caterpillar_data$hatch_date)
