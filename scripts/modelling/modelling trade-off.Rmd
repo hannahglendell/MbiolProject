@@ -11,6 +11,7 @@ library(MASS)
 library(here)
 library(dplyr)
 library(car)
+library(lmerTest)
 ```
 
 LABORATORY-RAISED MOTHS
@@ -40,6 +41,8 @@ results <- results %>%
 #so i have both random intercepts and random slope for each treatment
 lm2 <- lmer(egg_mean_1A ~ clutch_size * larval_treatment + clutch_size * pupal_treatment + weight_mg + (1|maternalID), data = results)
 summary(lm2)
+
+anova(lm2)
 #all interaction terms non-significant
 AIC(lm2)
 #AIC = -1465

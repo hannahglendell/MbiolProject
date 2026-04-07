@@ -88,6 +88,8 @@ ggplot(egg_sizes_filtered, aes(x = area)) +
 lm4 <- lmer(area ~ larval_treatment * pupal_treatment + (1|grandmotherID/motherID) + weight_mg_centered, data = egg_sizes_filtered)
 summary(lm4)
 
+anova(lm4)
+
 #test the effect of the interaction term 
 lm4_no_interaction <- lmer(area ~ larval_treatment + pupal_treatment + (1|grandmotherID/motherID) + weight_mg_centered, data = egg_sizes_filtered)
 anova(lm4, lm4_no_interaction)

@@ -112,6 +112,8 @@ lm1 <- glmmTMB(clutch_size ~ larval_treatment * pupal_treatment + weight_mg_cent
 summary(lm1)
 #as expected from path analysis, including the ambient group doesn't change anything - female mass is signficant, no direct effect of larval or pupal temp on clutch size
 
+#this doesn't work for a negative binomial model
+#anova(lm1)
 
 lm1_no_interaction <- glmmTMB(clutch_size ~ larval_treatment + pupal_treatment + weight_mg_centered + (1|maternalID), family = nbinom2, data = results_filtered)
 anova(lm1, lm1_no_interaction)
