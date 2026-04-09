@@ -97,7 +97,7 @@ results <- egg_counts_clean %>%
   mutate(
     clutch_ID   = if_else(pupal_treatment == "wild", adultID, clutchID),
     clutch_code = if_else(pupal_treatment == "wild", adultID, clutch_code),
-    maternalID = sub("^[^.]*\\.[^.]*\\.([^_]+)_.*$", "\\1", adultID))
+    grandmotherID = sub("^[^.]*\\.[^.]*\\.([^_]+)_.*$", "\\1", adultID))
 
 results$sex <- as.character(results$sex)
 

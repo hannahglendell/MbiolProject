@@ -1,4 +1,4 @@
-"pupal_treatment","emergence_date","sex","adultID","weight","mateID","clutchID","age","green_eggs","orange_eggs","clutch_size","eggs_photographed","clutch_code","X.x","larval_treatment","egg_mean_1B","egg_mean_2A","notes.y","egg_mean_1A","clutch_ID","maternalID"
+"pupal_treatment","emergence_date","sex","adultID","weight","mateID","clutchID","age","green_eggs","orange_eggs","clutch_size","eggs_photographed","clutch_code","X.x","larval_treatment","egg_mean_1B","egg_mean_2A","notes.y","egg_mean_1A","clutch_ID","grandmotherID"
 "ambient","12/9/2025","F","CTRL.WTH.102_P2_M ",0.033,"CTRL.WTH.121_P7_M","A.M.322","DONE",4,38,42,"DONE","62412","","ambient",NA,NA,"",0.198699802,"A.M.322","102"
 "ambient","11/23/2025","F","HOT.WTH.16_P1_A",0.0295,"HOT.WTH.29_P5_A","H.A.59","DONE",0,53,53,"DONE","8283","","hot",NA,NA,"",0.21,"H.A.59","16"
 "warm","11/9/2025","F","CTRL.WTH.60_P3_W",0.0205,"CTRL.WTH.1_P6_W","A.W.4","DONE",51,9,60,"DONE","9717","second image only has 9 eggs because the rest were green and too shrivelled to photograph","ambient",NA,NA,"only 9 eggs in this image",0.202687541,"A.W.4","60"

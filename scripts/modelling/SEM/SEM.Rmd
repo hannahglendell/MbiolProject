@@ -27,7 +27,7 @@ mean(results$weight, na.rm = TRUE)
 #which is 25.9mg 
 
 #make maternal ID a factor
-results$maternalID <- as.factor(results$maternalID)
+results$grandmotherID <- as.factor(results$grandmotherID)
 
 
 #only warm and hot larval treatments included in model
@@ -58,7 +58,7 @@ filtering the dataset
 sem_data <- results_filtered %>%
   dplyr::select(adultID, weight_mg, clutch_size, egg_mean_1A,
                 numerical_larval_treatment, numerical_pupal_treatment,
-                maternalID) %>%
+                grandmotherID) %>%
   filter(!is.na(egg_mean_1A))
 
 #to do some sense checks on the model predictions
@@ -84,7 +84,7 @@ m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment
 
 y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg, data = sem_data)
 
-x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + (1|maternalID), data = sem_data)
+x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + (1|grandmotherID), data = sem_data)
 
 # SEM with correlated error between clutch size and egg size
 sem_model <- psem(
@@ -115,19 +115,16 @@ plot(sem_model, show = "std", digits = 2)
 ```{r}
 #use the semEff package to get standardised effects and confidence intervals
 #set.seed(123)
-#standardised_effects <- semEff(sem_model,R = 10000, ran.eff = "maternalID")
+#standardised_effects <- semEff(sem_model,R = 10000, ran.eff = "grandmotherID")
 
 #save the standardised effects so I don't have to re-run the bootstrap every time
-#saveRDS(
-# standardised_effects,
-# file = here("data", "clean data", "standardised_effects.rds")
-#)
+#saveRDS(standardised_effects, file = here("data", "clean data","standardised_effects.rds"))
 
-standardised_effects <- readRDS("~/University stuff/Year 4/results/R project/data/clean data/standardised_effects.rds")
+#standardised_effects <- readRDS("~/University stuff/Year 4/results/R project/data/clean data/standardised_effects.rds")
 
 summary(standardised_effects)
 
-
+tab_model(standardised_effects)
 
 ```
 
@@ -136,7 +133,7 @@ summary(standardised_effects)
 ```{r}
 #to get unstandardised (raw) coefficients
 #set.seed(123)
-#effects <- bootEff(sem_model, R = 10000, ran.eff = "maternalID", incl.raw = TRUE) 
+# <- bootEff(sem_model, R = 10000, ran.eff = "grandmotherID", incl.raw = TRUE) 
 
 #raw_effects <- semEff(effects, use.raw = TRUE)
 
@@ -146,16 +143,20 @@ summary(standardised_effects)
 raw_effects <- readRDS("~/University stuff/Year 4/results/R project/data/clean data/raw_effects.rds")
 
 summary(raw_effects)
+tab_model(standardised_effects)
+
+
+
 
 ```
 
 now I want to generate model predictions so that I can plot them
 ```{r}
 #bootstrap estimates for the model
-sem.boot <- bootEff(sem_model, R = 10000, seed = 123, ran.eff = "maternalID")
+#sem.boot <- bootEff(sem_model, R = 10000, seed = 123, ran.eff = "grandmotherID")
 
 #save this so i don't have to re-run this bootstrap every single time
-saveRDS(sem.boot, file = here("data", "clean data", "sem.boot.rds"))
+#saveRDS(sem.boot, file = here("data", "clean data", "sem.boot.rds"))
 
 #now read in the bootstrapped estimates for the model, that i saved earlier
 sem.boot <- readRDS("~/University stuff/Year 4/results/R project/data/clean data/sem.boot.rds")

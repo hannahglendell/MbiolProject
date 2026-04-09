@@ -19,7 +19,7 @@ AMBIENT, WARM AND HOT LARVAL TREATMENT
 results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(sex = "character"))
 
 #make maternal ID a factor
-results$maternalID <- as.factor(results$maternalID)
+results$grandmotherID <- as.factor(results$grandmotherID)
 
 #how many eggs were counted in total
 sum(results$clutch_size) 
@@ -108,12 +108,14 @@ ggplot(results, aes(x = egg_mean_1A)) +
 
 
 ```{r}
-lm1 <- glmmTMB(clutch_size ~ larval_treatment * pupal_treatment + weight_mg_centered + (1|maternalID), family = nbinom2, data = results_filtered)
+lm1 <- glmmTMB(clutch_size ~ larval_treatment * pupal_treatment + weight_mg_centered + (1|grandmotherID), family = nbinom2, data = results_filtered)
 summary(lm1)
 #as expected from path analysis, including the ambient group doesn't change anything - female mass is signficant, no direct effect of larval or pupal temp on clutch size
 
 #this doesn't work for a negative binomial model
 #anova(lm1)
+
+tab_model(lm1)
 
 lm1_no_interaction <- glmmTMB(clutch_size ~ larval_treatment + pupal_treatment + weight_mg_centered + (1|maternalID), family = nbinom2, data = results_filtered)
 anova(lm1, lm1_no_interaction)
@@ -178,5 +180,8 @@ results_filtered_wild %>%
 ```{r}
 lm2 <- glmmTMB(clutch_size ~ larval_treatment, family = nbinom2, data = results_filtered_wild)
 summary(lm2)
+
+tab_model(lm2)
+
 ```
 
