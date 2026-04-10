@@ -33,7 +33,7 @@ ggplot(caterpillar_data, aes(x = hatch_date, y = pupal_treatment, colour = pupal
     dotsize = 0.4) +
   scale_colour_manual(values = temp_cols) +
   scale_x_date(date_breaks = "2 day", date_labels = "%b %d") +
-  labs(x = "hatch date", y = "pupal treatment") +
+  labs(x = "Hatch date", y = "Pupal treatment") +
   theme_bw()
 
 

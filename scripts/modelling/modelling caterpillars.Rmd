@@ -28,8 +28,5 @@ caterpillar_data$clutchID <- as.factor(caterpillar_data$clutchID)
 ```{r}
 lm1 <- lmer(julian_hatch_date ~ size_01 * pupal_treatment + (1|clutchID), data = caterpillar_data)
 summary(lm1)
-
-lm2 <- lm(julian_hatch_date ~ size_01, data = caterpillar_data)
-summary(lm2)
 ```
 

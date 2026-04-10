@@ -44,7 +44,10 @@ summary(lm2)
 anova(lm2)
 #all interaction terms non-significant
 
-tab_model(lm2)
+tab_model(lm2,
+          transform = NULL,   
+          show.se = TRUE,   
+          show.ci = FALSE) 
 
 confint(lm2)
 icc(lm2)
@@ -81,7 +84,10 @@ lm1 <- lm(egg_mean_1A ~ clutch_size, data = results_wild)
 summary(lm1)
 #non significant effect of clutch size on egg size
 
-tab_model(lm1)
+tab_model(lm1,
+          transform = NULL,   
+          show.se = TRUE,   
+          show.ci = FALSE) 
 
 
 confint(lm1)

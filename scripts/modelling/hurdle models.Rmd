@@ -87,9 +87,10 @@ AIC(mod.hurdl_4)
 #2467
 
 #print a nice model table to put in the appendix
-tab_model(mod.hurdl_4)
-
-
+tab_model(mod.hurdl_4,
+          transform = NULL,   
+          show.se = TRUE,   
+          show.ci = FALSE) 
 
 ```
 

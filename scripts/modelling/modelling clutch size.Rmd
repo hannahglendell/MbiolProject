@@ -115,7 +115,10 @@ summary(lm1)
 #this doesn't work for a negative binomial model
 #anova(lm1)
 
-tab_model(lm1)
+tab_model(lm1,
+          transform = NULL,   
+          show.se = TRUE,   
+          show.ci = FALSE) 
 
 lm1_no_interaction <- glmmTMB(clutch_size ~ larval_treatment + pupal_treatment + weight_mg_centered + (1|maternalID), family = nbinom2, data = results_filtered)
 anova(lm1, lm1_no_interaction)
@@ -181,7 +184,11 @@ results_filtered_wild %>%
 lm2 <- glmmTMB(clutch_size ~ larval_treatment, family = nbinom2, data = results_filtered_wild)
 summary(lm2)
 
-tab_model(lm2)
+
+tab_model(lm2,
+          transform = NULL,   
+          show.se = TRUE,   
+          show.ci = FALSE) 
 
 ```
 

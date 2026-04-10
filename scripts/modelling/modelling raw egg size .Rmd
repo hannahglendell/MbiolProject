@@ -90,7 +90,11 @@ summary(lm4)
 
 anova(lm4)
 
-tab_model(lm4)
+
+tab_model(lm4,
+          transform = NULL,   
+          show.se = TRUE,   
+          show.ci = FALSE) 
 
 #test the effect of the interaction term 
 lm4_no_interaction <- lmer(area ~ larval_treatment + pupal_treatment + (1|grandmotherID/motherID) + weight_mg_centered, data = egg_sizes_filtered)
@@ -194,7 +198,10 @@ ambient_and_wild <- raw_egg_sizes %>%
 lm1 <- lm(area ~ larval_treatment, data = ambient_and_wild)
 summary(lm1)
 
-tab_model(lm1)
+tab_model(lm1,
+          transform = NULL,   
+          show.se = TRUE,   
+          show.ci = FALSE)
 ```
 
 
