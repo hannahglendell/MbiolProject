@@ -182,6 +182,8 @@ eggs_spreadsheet <- eggs_spreadsheet %>%
 
 hatch_dates <- read.csv(here("data", "raw data", "HG_hatch_data(Sheet1).csv"))
 
+
+
 caterpillar_data <- eggs_spreadsheet %>%
   left_join(hatch_dates, by = "eggID")
 
@@ -197,13 +199,40 @@ caterpillar_data <- caterpillar_data %>%
   ) %>%
   select(-second_letter)
 
+#make at status column
+caterpillar_data <- caterpillar_data %>%
+  mutate(status = case_when(
+   weighday_1 == "lost" ~ "lost",
+    str_detect(weighday_1, "dead") ~ "dead",
+
+   hatch_date == "empty" ~ "empty",
+   hatch_date == "crushed" ~ "crushed",
+    is.na(hatch_date) ~ "unhatched",
+
+    !is.na(mdy(weighday_1)) ~ "hatched",
+
+   TRUE ~ NA_character_
+  ))
+
+#make a numerical column about whether or not it hatched
+caterpillar_data <- caterpillar_data %>%
+  mutate(hatched = case_when(
+    status == "unhatched" ~ 0,
+    status %in% c("dead", "hatched", "lost") ~ 1
+  ))
+
+
 caterpillar_data$hatch_date <- as.Date(caterpillar_data$hatch_date, format = "%m/%d/%Y")
 caterpillar_data$weighday_1 <- as.Date(caterpillar_data$weighday_1, format = "%m/%d/%Y")
 caterpillar_data$weighday_2 <- as.Date(caterpillar_data$weighday_2, format = "%m/%d/%Y")
 caterpillar_data$weighday_3 <- as.Date(caterpillar_data$weighday_3, format = "%m/%d/%Y")
 caterpillar_data$weighday_4 <- as.Date(caterpillar_data$weighday_4, format = "%m/%d/%Y")
 
+
+
+
 write.csv(caterpillar_data, file = here("data", "clean data", "caterpillar_data.csv"), row.names = FALSE)
+
 
 ```
 

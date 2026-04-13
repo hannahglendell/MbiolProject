@@ -6,11 +6,12 @@ output: html_document
 ```{r}
 caterpillar_data <- read.csv(here("data", "clean data", "caterpillar_data.csv"))
 
-caterpillar_data <- caterpillar_data %>%
-  filter(!is.na(hatch_date)) 
+#caterpillar_data <- caterpillar_data %>%
+  #filter(!is.na(hatch_date)) 
 
 caterpillar_data$pupal_treatment <- as.factor(caterpillar_data$pupal_treatment)
 caterpillar_data$hatch_date <- as.Date(caterpillar_data$hatch_date)
+caterpillar_data$weight_1 <- as.numeric(caterpillar_data$weight_1)
 
 
 ```
@@ -20,11 +21,10 @@ temp_cols <- c(
   ambient = "#484A4C",
   mean    = "#F9CA0F")
 
-ggplot(caterpillar_data, aes(x = hatch_date, y = size_01, colour = pupal_treatment)) +
+ggplot(caterpillar_data, aes(x = size_01, y = weight_1, colour = pupal_treatment)) +
   geom_point(alpha = 0.6) +
   scale_colour_manual(values = temp_cols) +
-  scale_x_date(date_breaks = "2 day", date_labels = "%b %d") +
-  labs(x = "Hatch date", y = "Egg size") +
+  labs(x = "egg size", y = "weight at 18 days") +
   theme_bw()
 
 ggplot(caterpillar_data, aes(x = hatch_date, y = pupal_treatment, colour = pupal_treatment)) +

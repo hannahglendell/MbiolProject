@@ -5,28 +5,32 @@ output: html_document
 ```{r}
 library(lme4)
 library(lmerTest)
+
+library(performance)
 ```
 
 
 ```{r}
+#model whether hatching or not is explained by egg size and pupal treatment, with clutch ID as a random effect
+#caterpillar ID can't be included as a random effect nested in clutchID becuase it complains that the model is singular
+
 caterpillar_data <- read.csv(here("data", "clean data", "caterpillar_data.csv"))
-
-caterpillar_data <- caterpillar_data %>%
-  filter(!is.na(hatch_date))
-
-caterpillar_data$pupal_treatment <- as.factor(caterpillar_data$pupal_treatment)
-caterpillar_data$hatch_date <- as.Date(caterpillar_data$hatch_date)
-
-caterpillar_data <- caterpillar_data %>%
-  mutate(julian_hatch_date = yday(hatch_date)) %>%
-  mutate(clutchID = str_split(clutchID, "\\.", simplify = TRUE)[,3])
 
 caterpillar_data$clutchID <- as.factor(caterpillar_data$clutchID)
 
+model <- glmer(hatched ~ size_01 + pupal_treatment + (1 | clutchID), data = caterpillar_data, family = binomial)
+
+summary(model)
+#neither egg size nor pupal treatment explain hatching success
+
+icc(model)
+#use adjusted ICC
+#around 29% of variation in hatching success is explained by clutchID
+
+
+#now I want to model whether weight is explained by size, pupal_treatment, julian hatch date, and clutchID as a random effect
+
 ```
 
-```{r}
-lm1 <- lmer(julian_hatch_date ~ size_01 * pupal_treatment + (1|clutchID), data = caterpillar_data)
-summary(lm1)
-```
+
 
