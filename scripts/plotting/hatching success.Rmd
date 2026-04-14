@@ -1,0 +1,59 @@
+---
+title: "hatch dates"
+output: html_document
+---
+
+```{r}
+library(here)
+library(tidyverse)
+library(ggplot2)
+```
+
+
+
+```{r}
+caterpillar_data <- read.csv(here("data", "clean data", "caterpillar_data.csv"))
+
+#caterpillar_data <- caterpillar_data %>%
+  #filter(!is.na(hatch_date)) 
+
+caterpillar_data$pupal_treatment <- as.factor(caterpillar_data$pupal_treatment)
+caterpillar_data$hatch_date <- as.Date(caterpillar_data$hatch_date)
+caterpillar_data$weight_1 <- as.numeric(caterpillar_data$weight_1)
+
+
+```
+
+```{r}
+
+caterpillar_data <- caterpillar_data %>%
+  filter(!is.na(hatched))
+  
+
+hatching_plot <- ggplot(caterpillar_data, aes(x = factor(hatched, labels = c("Unhatched", "Hatched")), y = size_01)) +
+  geom_boxplot(width = 0.3, outlier.shape = NA) +
+  geom_jitter(width = 0.1, alpha = 0.25, size = 3) +
+  labs(x = "", y = expression(Egg~area~(mm^2))) +
+  theme_bw() +
+    theme(
+    text = element_text(size = 18),            # increases all text
+    axis.title = element_text(size = 20),      # axis titles bigger
+    axis.text = element_text(size = 18),       # axis tick labels bigger
+    legend.text = element_text(size = 18),     # legend text bigger
+    legend.title = element_text(size = 20)
+    )
+
+hatching_plot
+
+ggsave(
+  here("figures", "hatching success.png"),
+  plot = hatching_plot,
+  width = 10,
+  height = 5,
+  dpi = 300
+)
+
+
+
+```
+
