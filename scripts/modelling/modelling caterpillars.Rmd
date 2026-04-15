@@ -32,7 +32,7 @@ ggplot(caterpillar_data, aes(x = hatch_date)) +
 #to count how many eggs hatched
 #caterpillar_data <- caterpillar_data %>%
   #filter(hatched == 1)
-
+#179 hatched so far
 
 
 caterpillar_data$clutchID <- as.factor(caterpillar_data$clutchID)
@@ -48,7 +48,7 @@ icc(model)
 
 
 
-#model assumptions test
+#model assumptions test 
 library(DHARMa)
 
 sim_res <- simulateResiduals(model)
