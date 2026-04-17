@@ -7,6 +7,8 @@ output: html_document
 library(here)
 library(tidyverse)
 library(ggplot2)
+library(lmerTest)
+library(patchwork)
 ```
 
 
@@ -33,7 +35,7 @@ caterpillar_data <- caterpillar_data %>%
 hatching_plot <- ggplot(caterpillar_data, aes(x = factor(hatched, labels = c("Unhatched", "Hatched")), y = size_01)) +
   geom_boxplot(width = 0.3, outlier.shape = NA) +
   geom_jitter(width = 0.1, alpha = 0.25, size = 3) +
-  labs(x = "", y = expression(Egg~area~(mm^2))) +
+  labs(x = "", y = expression(Egg~area~(mm^2)), title = "A) Hatching success") +
   theme_bw() +
     theme(
     text = element_text(size = 18),            # increases all text
@@ -56,4 +58,99 @@ ggsave(
 
 
 ```
+```{r}
 
+caterpillar_size <- ggplot(caterpillar_data, aes(x = size_01, y = weight_1)) +
+  geom_point(size = 3) +
+  labs(y = "Mass at 18 days post hatching (g)", x = expression(Egg~area~(mm^2)), title = "B) Larval mass") +
+  theme_bw() +
+    theme(
+    text = element_text(size = 18),            # increases all text
+    axis.title = element_text(size = 20),      # axis titles bigger
+    axis.text = element_text(size = 18),       # axis tick labels bigger
+    legend.text = element_text(size = 18),     # legend text bigger
+    legend.title = element_text(size = 20)
+    )
+
+caterpillar_size
+
+caterpillar_plot <-  hatching_plot + caterpillar_size
+
+ggsave(
+  here("figures", "caterpillar plot.png"),
+  plot = caterpillar_plot,
+  width = 20,
+  height = 10,
+  dpi = 300
+)
+
+```
+
+```{r}
+
+names(caterpillar_data) <- names(caterpillar_data) %>%
+  gsub("^weight([0-9]+)$", "weight_\\1", .)
+
+long_data <- caterpillar_data %>%
+  mutate(id = row_number()) %>%
+  pivot_longer(
+    cols = matches("^(weight|weighday)_\\d+$"),
+    names_to = c(".value", "time"),
+    names_pattern = "(weight|weighday)_(\\d+)"
+  )
+
+long_data$weighday <- as.Date(long_data$weighday)
+
+long_data <- long_data %>%
+  mutate(days_post_hatch = as.numeric(weighday - hatch_date))
+
+
+#random intercepts and random slopes
+model <- lmer(weight ~ days_post_hatch * size_01 + pupal_treatment + (1 | clutchID) + (days_post_hatch | eggID), data = long_data)
+
+#random intercepts only
+model <- lmer(weight ~ days_post_hatch * size_01 + pupal_treatment + (1 | clutchID/eggID), data = long_data)
+summary(model)
+
+#another option - different slopes per treatment, not per individual caterpillar. seems better.
+model <- lmer(weight ~ days_post_hatch * size_01 + days_post_hatch * pupal_treatment + (1|clutchID/eggID), data = long_data)
+
+summary(model)
+
+ggplot(long_data, aes(days_post_hatch, weight, colour = pupal_treatment)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  theme_minimal()
+
+
+
+
+
+ggplot(long_data, aes(x = weighday, y = weight, group = id)) +
+  geom_line(alpha = 0.5) +
+  geom_point() +
+  labs(x = "Day", y = "Weight", title = "Caterpillar growth over time") +
+  theme_minimal()
+
+ggplot(long_data, aes(x = days_post_hatch, y = weight, group = id)) +
+  geom_line(alpha = 0.5) +
+  geom_point(size = 3) +
+  scale_x_continuous(breaks = c(18, 24, 30)) +
+  labs(x = "Days post hatching", y = "Weight (g)",
+       title = "") +
+  theme_bw() +
+    theme(
+    text = element_text(size = 18),            # increases all text
+    axis.title = element_text(size = 20),      # axis titles bigger
+    axis.text = element_text(size = 18),       # axis tick labels bigger
+    legend.text = element_text(size = 18),     # legend text bigger
+    legend.title = element_text(size = 20)
+    )
+
+ggplot(long_data, aes(days_post_hatch, weight, colour = size_01, group = eggID)) +
+  geom_line(alpha = 0.3) +
+  geom_point() +
+  scale_colour_viridis_c(option = "viridis")
+
+
+```
