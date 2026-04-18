@@ -23,7 +23,7 @@ results <- read.csv(here("data", "clean data", "results.csv"), colClasses = c(se
 
 
 #make maternal ID a factor
-results$maternalID <- as.factor(results$maternalID)
+results$grandmotherID <- as.factor(results$grandmotherID)
 
 
 #only warm and hot larval treatments included in model
@@ -51,7 +51,7 @@ results_filtered <- results %>%
 sem_data <- results_filtered %>%
   dplyr::select(adultID, weight_mg, clutch_size, egg_mean_1A,
                 numerical_larval_treatment, numerical_pupal_treatment,
-                maternalID) %>%
+                grandmotherID) %>%
   filter(!is.na(egg_mean_1A))
 
 
@@ -64,7 +64,7 @@ m_model <- lm(weight_mg ~ numerical_larval_treatment + numerical_pupal_treatment
 
 y_model <- glm.nb(clutch_size ~ numerical_larval_treatment + numerical_pupal_treatment + weight_mg, data = sem_data)
 
-x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + (1|maternalID), data = sem_data)
+x_model <- lmer(egg_mean_1A ~ numerical_pupal_treatment + numerical_larval_treatment + weight_mg + (1|grandmotherID), data = sem_data)
 
 # SEM with correlated error between clutch size and egg size
 sem_model <- psem(
@@ -76,13 +76,13 @@ sem_model <- psem(
 
 ```{r}
 set.seed(123)
-standardised_effects <- semEff(sem_model,R = 1000, ran.eff = "maternalID")
+standardised_effects <- semEff(sem_model,R = 1000, ran.eff = "grandmotherID")
 summary(standardised_effects)
 ```
 
 ```{r}
 #set.seed(123)
-effects <- bootEff(sem_model, R = 1000, ran.eff = "maternalID", incl.raw = TRUE) 
+effects <- bootEff(sem_model, R = 1000, ran.eff = "grandmotherID", incl.raw = TRUE) 
 
 raw_effects <- semEff(effects, use.raw = TRUE)
 

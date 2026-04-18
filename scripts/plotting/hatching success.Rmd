@@ -102,7 +102,9 @@ long_data <- caterpillar_data %>%
 long_data$weighday <- as.Date(long_data$weighday)
 
 long_data <- long_data %>%
-  mutate(days_post_hatch = as.numeric(weighday - hatch_date))
+  mutate(days_post_hatch = as.numeric(weighday - hatch_date)) %>%
+  filter(!is.na("weight"))
+
 
 
 #random intercepts and random slopes

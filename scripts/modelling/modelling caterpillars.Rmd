@@ -6,6 +6,7 @@ output: html_document
 library(lme4)
 library(lmerTest)
 library(performance)
+library(sjPlot)
 ```
 
 
@@ -41,6 +42,12 @@ model <- glmer(hatched ~ size_01 + pupal_treatment + (1 | clutchID), data = cate
 
 summary(model)
 #neither egg size nor pupal treatment explain hatching success
+
+
+tab_model(model,
+          transform = NULL,   
+          show.se = TRUE,   
+          show.ci = FALSE) 
 
 icc(model)
 #use adjusted ICC
