@@ -124,6 +124,12 @@ ggplot(long_data, aes(days_post_hatch, weight, colour = pupal_treatment)) +
   geom_smooth(method = "lm", se = FALSE) +
   theme_minimal()
 
+temp_cols <- c(
+  ambient = "#484A4C",
+  cool    = "#76C0CC",
+  mean    = "#F9CA0F",
+  warm    = "#E87A36",
+  hot     = "#AF0808")
 
 
 
@@ -134,12 +140,13 @@ ggplot(long_data, aes(x = weighday, y = weight, group = id)) +
   labs(x = "Day", y = "Weight", title = "Caterpillar growth over time") +
   theme_minimal()
 
-ggplot(long_data, aes(x = days_post_hatch, y = weight, group = id)) +
-  geom_line(alpha = 0.5) +
+ggplot(long_data, aes(x = days_post_hatch, y = weight, group = id, colour = pupal_treatment)) +
+  geom_line(alpha = 0.5, size = 1) +
   geom_point(size = 3) +
   scale_x_continuous(breaks = c(18, 24, 30)) +
   labs(x = "Days post hatching", y = "Weight (g)",
        title = "") +
+  scale_color_manual(values = temp_cols) +
   theme_bw() +
     theme(
     text = element_text(size = 18),            # increases all text
@@ -149,10 +156,7 @@ ggplot(long_data, aes(x = days_post_hatch, y = weight, group = id)) +
     legend.title = element_text(size = 20)
     )
 
-ggplot(long_data, aes(days_post_hatch, weight, colour = size_01, group = eggID)) +
-  geom_line(alpha = 0.3) +
-  geom_point() +
-  scale_colour_viridis_c(option = "viridis")
+
 
 
 ```
