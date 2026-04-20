@@ -23,6 +23,12 @@ caterpillar_data$pupal_treatment <- as.factor(caterpillar_data$pupal_treatment)
 caterpillar_data$hatch_date <- as.Date(caterpillar_data$hatch_date)
 caterpillar_data$weight_1 <- as.numeric(caterpillar_data$weight_1)
 
+#turn all weights into mg
+caterpillar_data$weight_1 <- caterpillar_data$weight_1 * 1000
+caterpillar_data$weight_2 <- caterpillar_data$weight_2 * 1000
+caterpillar_data$weight3 <- caterpillar_data$weight3 * 1000
+caterpillar_data$weight4 <- caterpillar_data$weight4 * 1000
+caterpillar_data$weight_5 <- caterpillar_data$weight_5 * 1000
 
 ```
 
@@ -31,18 +37,25 @@ caterpillar_data$weight_1 <- as.numeric(caterpillar_data$weight_1)
 caterpillar_data <- caterpillar_data %>%
   filter(!is.na(hatched))
   
+#how many caterpillars hatches overall
+caterpillar_data %>%
+  filter(hatched == 1)
 
 hatching_plot <- ggplot(caterpillar_data, aes(x = factor(hatched, labels = c("Unhatched", "Hatched")), y = size_01)) +
   geom_boxplot(width = 0.3, outlier.shape = NA) +
-  geom_jitter(width = 0.1, alpha = 0.25, size = 3) +
-  labs(x = "", y = expression(Egg~area~(mm^2)), title = "A) Hatching success") +
+  geom_jitter(width = 0.1, alpha = 0.25, size = 5) +
+  #scale_colour_manual(values = temp_cols) +
+  labs(x = "", y = expression(Egg~area~(mm^2)), title = "A) Hatching success", colour = "Allocation temperature") +
   theme_bw() +
     theme(
     text = element_text(size = 18),            # increases all text
     axis.title = element_text(size = 20),      # axis titles bigger
     axis.text = element_text(size = 18),       # axis tick labels bigger
     legend.text = element_text(size = 18),     # legend text bigger
-    legend.title = element_text(size = 20)
+    legend.title = element_text(size = 20),
+    #legend.position = c(0.98, 0.9),   # top-right inside
+  #legend.justification = c(1, 1),     # anchor legend box to its top-right corner
+  #legend.background = element_rect(fill = "white", colour = "black")  # optional: improve visibility
     )
 
 hatching_plot
@@ -74,15 +87,6 @@ caterpillar_size <- ggplot(caterpillar_data, aes(x = size_01, y = weight_1)) +
 
 caterpillar_size
 
-caterpillar_plot <-  hatching_plot + caterpillar_size
-
-ggsave(
-  here("figures", "caterpillar plot.png"),
-  plot = caterpillar_plot,
-  width = 20,
-  height = 10,
-  dpi = 300
-)
 
 ```
 
@@ -108,11 +112,11 @@ long_data <- long_data %>%
 
 
 #random intercepts and random slopes
-model <- lmer(weight ~ days_post_hatch * size_01 + pupal_treatment + (1 | clutchID) + (days_post_hatch | eggID), data = long_data)
+#model <- lmer(weight ~ days_post_hatch * size_01 + pupal_treatment + (1 | clutchID) + (days_post_hatch | eggID), data = long_data)
 
 #random intercepts only
-model <- lmer(weight ~ days_post_hatch * size_01 + pupal_treatment + (1 | clutchID/eggID), data = long_data)
-summary(model)
+#model <- lmer(weight ~ days_post_hatch * size_01 + pupal_treatment + (1 | clutchID/eggID), data = long_data)
+#ummary(model)
 
 #another option - different slopes per treatment, not per individual caterpillar. seems better.
 model <- lmer(weight ~ days_post_hatch * size_01 + days_post_hatch * pupal_treatment + (1|clutchID/eggID), data = long_data)
@@ -140,12 +144,12 @@ ggplot(long_data, aes(x = weighday, y = weight, group = id)) +
   labs(x = "Day", y = "Weight", title = "Caterpillar growth over time") +
   theme_minimal()
 
-ggplot(long_data, aes(x = days_post_hatch, y = weight, group = id, colour = pupal_treatment)) +
+growth_rate <- ggplot(long_data, aes(x = days_post_hatch, y = weight, group = id, colour = pupal_treatment)) +
   geom_line(alpha = 0.5, size = 1) +
-  geom_point(size = 3) +
+  geom_point(size = 5) +
   scale_x_continuous(breaks = c(18, 24, 30)) +
-  labs(x = "Days post hatching", y = "Weight (g)",
-       title = "") +
+  labs(x = "Days post hatching", y = "Larval mass (mg)",
+       title = "B) Larval growth rate", colour = "Allocation temperature") +
   scale_color_manual(values = temp_cols) +
   theme_bw() +
     theme(
@@ -153,10 +157,22 @@ ggplot(long_data, aes(x = days_post_hatch, y = weight, group = id, colour = pupa
     axis.title = element_text(size = 20),      # axis titles bigger
     axis.text = element_text(size = 18),       # axis tick labels bigger
     legend.text = element_text(size = 18),     # legend text bigger
-    legend.title = element_text(size = 20)
+    legend.title = element_text(size = 20),
+    legend.position = c(0.98, 0.98),   # top-right inside
+  legend.justification = c(1, 1),     # anchor legend box to its top-right corner
+  legend.background = element_rect(fill = "white", colour = "black")  # optional: improve visibility
     )
+growth_rate
 
 
+caterpillar_plot <-  hatching_plot + growth_rate
 
+ggsave(
+  here("figures", "caterpillar plot.png"),
+  plot = caterpillar_plot,
+  width = 20,
+  height = 10,
+  dpi = 300
+)
 
 ```
