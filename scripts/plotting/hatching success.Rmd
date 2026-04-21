@@ -22,6 +22,7 @@ caterpillar_data <- read.csv(here("data", "clean data", "caterpillar_data.csv"))
 caterpillar_data$pupal_treatment <- as.factor(caterpillar_data$pupal_treatment)
 caterpillar_data$hatch_date <- as.Date(caterpillar_data$hatch_date)
 caterpillar_data$weight_1 <- as.numeric(caterpillar_data$weight_1)
+caterpillar_data$weight_2 <- as.numeric(caterpillar_data$weight_2)
 
 #turn all weights into mg
 caterpillar_data$weight_1 <- caterpillar_data$weight_1 * 1000
