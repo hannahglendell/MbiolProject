@@ -1,0 +1,101 @@
+---
+title: "trade-off"
+output: html_document
+---
+
+```{r}
+library(here)
+library(ggplot2)
+library(tidyverse)
+library(lme4)
+library(ggdist)
+library(patchwork)
+```
+
+
+```{r}
+#read in the results data
+results <- read.csv(here("data", "clean data", "results.csv"))
+
+
+#convert the pupal temperatures to factors so they plot in the correct order
+results$pupal_treatment <- factor(results$pupal_treatment,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
+
+#convert the larval  temperatures to factors so the plot in the correct order
+results$larval_treatment <- factor(results$larval_treatment,
+                             levels = c("wild", "ambient", "cool", "mean", "warm", "hot"))
+
+#assign colours to the temperatures                           
+temp_cols <- c(
+  ambient = "#484A4C",
+  cool    = "#76C0CC",
+  mean    = "#F9CA0F",
+  warm    = "#E87A36",
+  hot     = "#AF0808")
+
+
+```
+
+```{r}
+wild_moths_trade_off <- 
+ggplot(
+  results %>% filter(pupal_treatment == "wild"),
+  aes(x = clutch_size, y = egg_mean_1A)) +
+  geom_point( size = 4) +
+coord_cartesian(xlim = c(0, 400), ylim = c(0.16, 0.24)) +
+    labs(
+       title = "B) Wild moths",
+      y = expression(Mean~egg~area~(mm^2)),
+      x = "clutch size (number of eggs)") + 
+  theme_bw() + 
+    theme(
+    text = element_text(size = 18),            # increases all text
+    axis.title = element_text(size = 20),      # axis titles bigger
+    axis.text = element_text(size = 18),       # axis tick labels bigger
+    legend.text = element_text(size = 18),     # legend text bigger
+    legend.title = element_text(size = 20)
+    )    # legend title bigger
+
+wild_moths_trade_off
+
+
+
+```
+
+
+
+
+```{r}
+lab_moths_trade_off <- ggplot(
+  results %>% filter(pupal_treatment != "wild"),
+  aes(x = clutch_size, y = egg_mean_1A)) +
+  geom_point(size = 4) +
+coord_cartesian(xlim = c(0, 400), ylim = c(0.16, 0.24)) +
+    labs(
+      title = "A) Laboratory moths",
+      y = expression(Mean~egg~area~(mm^2)),
+      x = "clutch size (number of eggs)") +
+  theme_bw() + 
+    theme(
+    text = element_text(size = 18),            # increases all text
+    axis.title = element_text(size = 20),      # axis titles bigger
+    axis.text = element_text(size = 18),       # axis tick labels bigger
+    legend.text = element_text(size = 18),     # legend text bigger
+    legend.title = element_text(size = 20)     # legend title bigger
+  )
+
+lab_moths_trade_off
+
+
+trade_off_plot <-  lab_moths_trade_off + wild_moths_trade_off
+
+ggsave(
+  here("figures", "trade off.png"),
+  plot = trade_off_plot,
+  width = 20,
+  height = 10,
+  dpi = 300
+)
+```
+

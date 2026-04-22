@@ -1,0 +1,72 @@
+---
+title: "modelling growth rate"
+output: html_document
+---
+
+```{r}
+library(here)
+library(tidyverse)
+library(ggplot2)
+library(lmerTest)
+library(patchwork)
+```
+
+```{r}
+caterpillar_data <- read.csv(here("data", "clean data", "caterpillar_data.csv"))
+
+#caterpillar_data <- caterpillar_data %>%
+  #filter(!is.na(hatch_date)) 
+
+caterpillar_data$pupal_treatment <- as.factor(caterpillar_data$pupal_treatment)
+caterpillar_data$hatch_date <- as.Date(caterpillar_data$hatch_date)
+caterpillar_data$weight_1 <- as.numeric(caterpillar_data$weight_1)
+caterpillar_data$weight_2 <- as.numeric(caterpillar_data$weight_2)
+
+#turn all weights into mg
+caterpillar_data$weight_1 <- caterpillar_data$weight_1 * 1000
+caterpillar_data$weight_2 <- caterpillar_data$weight_2 * 1000
+caterpillar_data$weight3 <- caterpillar_data$weight3 * 1000
+caterpillar_data$weight4 <- caterpillar_data$weight4 * 1000
+caterpillar_data$weight_5 <- caterpillar_data$weight_5 * 1000
+
+caterpillar_data <- caterpillar_data %>%
+  filter(!is.na(hatched))
+
+```
+
+```{r}
+
+names(caterpillar_data) <- names(caterpillar_data) %>%
+  gsub("^weight([0-9]+)$", "weight_\\1", .)
+
+long_data <- caterpillar_data %>%
+  mutate(id = row_number()) %>%
+  pivot_longer(
+    cols = matches("^(weight|weighday)_\\d+$"),
+    names_to = c(".value", "time"),
+    names_pattern = "(weight|weighday)_(\\d+)"
+  )
+
+long_data$weighday <- as.Date(long_data$weighday)
+
+long_data <- long_data %>%
+  mutate(days_post_hatch = as.numeric(weighday - hatch_date)) %>%
+  filter(!is.na("weight"))
+```
+
+```{r}
+#random intercepts and random slopes
+#model <- lmer(weight ~ days_post_hatch * size_01 + pupal_treatment + (1 | clutchID) + (days_post_hatch | eggID), data = long_data)
+
+#random intercepts only
+#model <- lmer(weight ~ days_post_hatch * size_01 + pupal_treatment + (1 | clutchID/eggID), data = long_data)
+#summary(model)
+
+
+model <- lmer(weight ~ days_post_hatch * size_01 + days_post_hatch * pupal_treatment + (1|clutchID/eggID), data = long_data)
+
+summary(model)
+
+plot(model)
+```
+
