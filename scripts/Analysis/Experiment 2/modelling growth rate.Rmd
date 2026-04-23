@@ -33,7 +33,8 @@ caterpillar_data$weight4 <- caterpillar_data$weight4 * 1000
 caterpillar_data$weight_5 <- caterpillar_data$weight_5 * 1000
 
 caterpillar_data <- caterpillar_data %>%
-  filter(!is.na(hatched))
+  filter(!is.na(hatched)) %>%
+  filter(!is.na(weight_2))
 
 ```
 
@@ -65,30 +66,46 @@ long_data <- long_data %>%
     !is.na(days_post_hatch),
     !is.na(eggID)
   )
+#random intercept only for each egg
+#model <- lmer(weight ~ days_post_hatch + (1|eggID), data = long_data)
+#summary(model)
+#coef(model)$eggID
+
+
+#random intercepts and random slopes for each egg
+model <- lmer(weight ~  days_post_hatch + (days_post_hatch | eggID), data = long_data)
+summary(model)
+coef(model)$eggID
+
+#extract the slope (the gradient) of the line for each egg
+slopes_df <- data.frame(
+  eggID = rownames(coef(model)$eggID),
+  slope = coef(model)$eggID[, "days_post_hatch"]
+)
 
 
 #this gives absolute growth as mg per day, for each individual caterpillar
-growth_rate <- long_data %>%
-  group_by(eggID) %>%
-  nest() %>%
-  mutate(
-    fit = map(data, ~ lm(weight ~ days_post_hatch, data = .x)),
-    tidied = map(fit, tidy)
-  ) %>%
-  unnest(tidied) %>%
-  filter(term == "days_post_hatch") %>%
-  select(eggID, growth_rate = estimate)
+#growth_rate <- long_data %>%
+ # group_by(eggID) %>%
+ # nest() %>%
+  #mutate(
+   # fit = map(data, ~ lm(weight ~ days_post_hatch, data = .x)),
+   # tidied = map(fit, tidy)
+  #) %>%
+  #unnest(tidied) %>%
+  #filter(term == "days_post_hatch") %>%
+  #select(eggID, growth_rate = estimate)
 
 #now i want to join this back onto the caterpillar_data spreadsheet
 caterpillar_data <- caterpillar_data %>%
-  left_join(growth_rate, by = "eggID")
+  left_join(slopes_df, by = "eggID")
 
 #plot the relationship between growth rate and egg size
-ggplot(caterpillar_data, aes(x = size_01, y = growth_rate)) +
+ggplot(caterpillar_data, aes(x = size_01, y = slope)) +
   geom_point(size = 3)
 
 #now make a model of growth rate and size
-model <- lm(growth_rate ~ size_01 + pupal_treatment, data = caterpillar_data)
+model <- lm(slope ~ size_01 + pupal_treatment, data = caterpillar_data)
 summary(model)
 AIC(model)
 
