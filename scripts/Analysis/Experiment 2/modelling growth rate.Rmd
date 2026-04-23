@@ -9,6 +9,9 @@ library(tidyverse)
 library(ggplot2)
 library(lmerTest)
 library(patchwork)
+library(purrr)
+library(broom)
+library(nlme)
 ```
 
 ```{r}
@@ -55,12 +58,55 @@ long_data <- long_data %>%
 ```
 
 ```{r}
+#remove rows with NAs
+long_data <- long_data %>%
+  dplyr::filter(
+    !is.na(weight),
+    !is.na(days_post_hatch),
+    !is.na(eggID)
+  )
+
+
+#this gives absolute growth as mg per day, for each individual caterpillar
+growth_rate <- long_data %>%
+  group_by(eggID) %>%
+  nest() %>%
+  mutate(
+    fit = map(data, ~ lm(weight ~ days_post_hatch, data = .x)),
+    tidied = map(fit, tidy)
+  ) %>%
+  unnest(tidied) %>%
+  filter(term == "days_post_hatch") %>%
+  select(eggID, growth_rate = estimate)
+
+#now i want to join this back onto the caterpillar_data spreadsheet
+caterpillar_data <- caterpillar_data %>%
+  left_join(growth_rate, by = "eggID")
+
+#plot the relationship between growth rate and egg size
+ggplot(caterpillar_data, aes(x = size_01, y = growth_rate)) +
+  geom_point(size = 3)
+
+#now make a model of growth rate and size
+model <- lm(growth_rate ~ size_01 + pupal_treatment, data = caterpillar_data)
+summary(model)
+AIC(model)
+
+```
+
+
+
+
+
+```{r}
 #random intercepts and random slopes
-#model <- lmer(weight ~ days_post_hatch * size_01 + pupal_treatment + (1 | clutchID) + (days_post_hatch | eggID), data = long_data)
+model <- lmer(weight ~ days_post_hatch * size_01 + pupal_treatment + (1 | clutchID) + (days_post_hatch | eggID), data = long_data)
+
+summary(model)
 
 #random intercepts only
-#model <- lmer(weight ~ days_post_hatch * size_01 + pupal_treatment + (1 | clutchID/eggID), data = long_data)
-#summary(model)
+model <- lmer(weight ~ days_post_hatch * size_01 + pupal_treatment + (1 | clutchID/eggID), data = long_data)
+summary(model)
 
 
 model <- lmer(weight ~ days_post_hatch * size_01 + days_post_hatch * pupal_treatment + (1|clutchID/eggID), data = long_data)

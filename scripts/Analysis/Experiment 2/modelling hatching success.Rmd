@@ -43,6 +43,13 @@ model <- glmer(hatched ~ size_01 + pupal_treatment + (1 | clutchID), data = cate
 summary(model)
 #neither egg size nor pupal treatment explain hatching success
 
+#back-transform estimates
+# baseline
+plogis(7.2175)
+
+# treatment = "mean"
+plogis(7.2175 - 1.1956)
+
 
 tab_model(model,
           transform = NULL,   
