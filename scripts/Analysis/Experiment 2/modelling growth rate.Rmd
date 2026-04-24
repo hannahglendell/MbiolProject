@@ -12,6 +12,7 @@ library(patchwork)
 library(purrr)
 library(broom)
 library(nlme)
+library(lme4)
 ```
 
 ```{r}
@@ -32,6 +33,7 @@ caterpillar_data$weight3 <- caterpillar_data$weight3 * 1000
 caterpillar_data$weight4 <- caterpillar_data$weight4 * 1000
 caterpillar_data$weight_5 <- caterpillar_data$weight_5 * 1000
 
+#remove rows where hatched is NA, and where there are not at least two weights
 caterpillar_data <- caterpillar_data %>%
   filter(!is.na(hatched)) %>%
   filter(!is.na(weight_2))
@@ -39,10 +41,11 @@ caterpillar_data <- caterpillar_data %>%
 ```
 
 ```{r}
-
+#fix the names of the columns
 names(caterpillar_data) <- names(caterpillar_data) %>%
   gsub("^weight([0-9]+)$", "weight_\\1", .)
 
+#turn the data into long format
 long_data <- caterpillar_data %>%
   mutate(id = row_number()) %>%
   pivot_longer(
@@ -51,8 +54,10 @@ long_data <- caterpillar_data %>%
     names_pattern = "(weight|weighday)_(\\d+)"
   )
 
+#save weighday as a date
 long_data$weighday <- as.Date(long_data$weighday)
 
+#add a days post hatch column
 long_data <- long_data %>%
   mutate(days_post_hatch = as.numeric(weighday - hatch_date)) %>%
   filter(!is.na("weight"))
@@ -66,46 +71,39 @@ long_data <- long_data %>%
     !is.na(days_post_hatch),
     !is.na(eggID)
   )
-#random intercept only for each egg
-#model <- lmer(weight ~ days_post_hatch + (1|eggID), data = long_data)
-#summary(model)
-#coef(model)$eggID
+
+#group the data by eggID, and then for each eggID estimate the best-fitting line. then extract the coefficient of that line (the slope). This is the growth rate of the caterpillar as mg per day/
+slopes <- long_data %>%
+  group_by(eggID) %>%
+  summarise(
+    slope = coef(lm(weight ~ days_post_hatch))[2]
+  )
+
 
 
 #random intercepts and random slopes for each egg
-model <- lmer(weight ~  days_post_hatch + (days_post_hatch | eggID), data = long_data)
-summary(model)
-coef(model)$eggID
+#model <- lmer(weight ~  days_post_hatch + (days_post_hatch | eggID), data = long_data)
+#summary(model)
+#coef(model)$eggID
+#at the moment this model is singular but hopefully that will be resolved once I have more data??
 
 #extract the slope (the gradient) of the line for each egg
-slopes_df <- data.frame(
-  eggID = rownames(coef(model)$eggID),
-  slope = coef(model)$eggID[, "days_post_hatch"]
-)
-
-
-#this gives absolute growth as mg per day, for each individual caterpillar
-#growth_rate <- long_data %>%
- # group_by(eggID) %>%
- # nest() %>%
-  #mutate(
-   # fit = map(data, ~ lm(weight ~ days_post_hatch, data = .x)),
-   # tidied = map(fit, tidy)
-  #) %>%
-  #unnest(tidied) %>%
-  #filter(term == "days_post_hatch") %>%
-  #select(eggID, growth_rate = estimate)
+#slopes_df <- data.frame(
+ # eggID = rownames(coef(model)$eggID),
+#  slope = coef(model)$eggID[, "days_post_hatch"]
+#)
 
 #now i want to join this back onto the caterpillar_data spreadsheet
 caterpillar_data <- caterpillar_data %>%
-  left_join(slopes_df, by = "eggID")
+  left_join(slopes, by = "eggID")
 
 #plot the relationship between growth rate and egg size
 ggplot(caterpillar_data, aes(x = size_01, y = slope)) +
-  geom_point(size = 3)
+  geom_point(size = 3) +
+labs( x = "egg size", y = "growth rate (mg/day)")
 
 #now make a model of growth rate and size
-model <- lm(slope ~ size_01 + pupal_treatment, data = caterpillar_data)
+model <- lmer(slope ~ size_01 + pupal_treatment + (1|clutchID), data = caterpillar_data)
 summary(model)
 AIC(model)
 

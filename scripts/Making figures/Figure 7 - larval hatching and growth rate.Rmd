@@ -92,6 +92,7 @@ caterpillar_size
 ```
 
 ```{r}
+#to plot the weight of each caterpillar over time, I need to turn the data into long format
 
 names(caterpillar_data) <- names(caterpillar_data) %>%
   gsub("^weight([0-9]+)$", "weight_\\1", .)
@@ -134,11 +135,11 @@ ggplot(long_data, aes(x = weighday, y = weight, group = id)) +
   labs(x = "Day", y = "Weight", title = "Caterpillar growth over time") +
   theme_minimal()
 
-growth_rate <- ggplot(long_data, aes(x = days_post_hatch, y = weight, group = id, colour = pupal_treatment)) +
+growth_rate <- ggplot(long_data, aes(x = days_post_hatch, y = log(weight), group = id, colour = pupal_treatment)) +
   geom_line(alpha = 0.5, size = 1) +
   geom_point(size = 5) +
   scale_x_continuous(breaks = c(18, 24, 30)) +
-  labs(x = "Days post hatching", y = "Larval mass (mg)",
+  labs(x = "Days post hatching", y = "Log (larval mass (mg))",
        title = "B) Larval growth rate", colour = "Allocation temperature") +
   scale_color_manual(values = temp_cols) +
   theme_bw() +

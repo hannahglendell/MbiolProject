@@ -56,8 +56,8 @@ temperature_treatments <- read.csv(here("data", "raw data", "mbiols_daily_temper
 #to make sure dates are stored as dates, and temperatures as numbers
 temperature_treatments <- temperature_treatments %>%
   mutate(
-    date_1   = as.Date(date_1, format = "%d/%m/%Y"),
-    date_end = as.Date(date_end, format = "%d/%m/%Y"),
+    date_1   = as.Date(date_1, format = "%m/%d/%Y"),
+    date_end = as.Date(date_end, format = "%m/%d/%Y"),
     `plus2.5`    = as.numeric(`plus2.5`),
     `plus1.5`    = as.numeric(`plus1.5`),
     `actual.mean` = as.numeric(`actual.mean`),
@@ -97,11 +97,12 @@ plot_data_clean <- daily_mean_treatments_long %>%
     values_to = "mean_temperature"
   ) %>%
   mutate(treatment = factor(treatment, 
-                            levels = c("minus1.5_mean", "actual_mean", "plus1.5_mean", "plus2.5_mean", "Ambient_mean")))
+                            levels = c("minus1.5_mean", "actual_mean", "plus1.5_mean", "plus2.5_mean", "Ambient_mean"))) %>%
+  arrange(date) 
 
 #take off the last rows that have temperatures for january 2026
 plot_data_clean <- plot_data_clean %>%
-  slice(1:1324)  # keeps rows 1 through 1324
+  slice(7:1465)  # keeps rows 1 through 1465
 
 ```
 
@@ -129,9 +130,9 @@ plot_1 <- ggplot() +
             aes(x = date, y = mean_temperature, color = treatment),
             size = 1.2) +  # increase line thickness for treatments
   # Overlay the daily mean temperature for ambient treatment (dashed, thinner)
-  geom_line(data = daily_means, 
-            aes(x = date, y = mean_temperature, color = treatment),
-            size = 0.6) +   # thinner line for ambient
+  #geom_line(data = daily_means, 
+          #  aes(x = date, y = mean_temperature, color = treatment),
+          #  size = 0.6) +   # thinner line for ambient
   scale_color_manual(
     values = c(
       "minus1.5_mean" = "#76C0CC",
@@ -149,20 +150,20 @@ plot_1 <- ggplot() +
     ),
     name = NULL
   ) +
-  scale_x_date(
-    date_labels = "%b",        # only month abbreviation
-    date_breaks = "1 month",
-    expand = expansion(mult = c(0.01, 0.01))
-  ) +
+scale_x_date(
+  limits = c(as.Date("2025-01-01"), as.Date("2026-01-15")),  # extra space
+  breaks = seq(as.Date("2025-01-01"), as.Date("2025-12-01"), by = "1 month"),  # stop at Nov
+  date_labels = "%b"
+) +
   labs(
     x = "",
     y = "Mean daily temperature (°C)",
     title = ""
   ) +
-  theme_minimal() +
+  theme_bw() +
   theme(
-    legend.position = "top",
-    legend.direction = "horizontal",
+    legend.position = "none",
+    #legend.direction = "horizontal",
     text = element_text(size = 16),          # base size for all text
     axis.title = element_text(size = 18),    # axis titles
     axis.text = element_text(size = 16),     # tick labels
@@ -173,9 +174,10 @@ plot_1 <- ggplot() +
 
 plot_1
 
+
 ```
 ```{r}
-ggsave("temperature treatments.png", plot = plot_1, width = 8, height = 6, dpi = 300)
+ggsave("temperature treatments.png", plot = plot_1, width = 10, height = 5, dpi = 300)
 ```
 
  
