@@ -70,7 +70,9 @@ long_data <- long_data %>%
     !is.na(weight),
     !is.na(days_post_hatch),
     !is.na(eggID)
-  )
+  ) #%>%
+  #mutate("log_weight" = log(weight))
+
 
 #group the data by eggID, and then for each eggID estimate the best-fitting line. then extract the coefficient of that line (the slope). This is the growth rate of the caterpillar as mg per day/
 slopes <- long_data %>%

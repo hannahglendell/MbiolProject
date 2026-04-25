@@ -177,7 +177,7 @@ plot_1
 
 ```
 ```{r}
-ggsave("temperature treatments.png", plot = plot_1, width = 10, height = 5, dpi = 300)
+ggsave("temperature treatments.png", plot = plot_1, width = 10, height = 5, dpi = 300) 
 ```
 
  
